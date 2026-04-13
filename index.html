@@ -11,13 +11,16 @@
             font-weight: normal; font-style: normal;
         }
         * { font-family: 'TransducerCondensed', sans-serif; letter-spacing: 0.5px; font-weight: normal !important; }
-        body { margin: 0; padding: 30px; background-color: #222; display: flex; justify-content: center; }
+        body { margin: 0; padding: 40px 20px; background-color: #222; display: flex; justify-content: center; align-items: flex-start; }
 
+        /* 💡 แก้ไข: ขยายความกว้างและแบ่งเป็นตาราง 2 คอลัมน์ (Grid) */
         #setup-panel {
-            background-color: #1a1a1a; padding: 25px; border-radius: 0; width: 400px;
+            background-color: #1a1a1a; padding: 30px; border-radius: 0; width: 850px;
             box-sizing: border-box; color: #fff; 
             border: 1px solid #444; box-shadow: 0px 8px 20px rgba(0,0,0,0.8);
+            display: grid; grid-template-columns: 1fr 1fr; gap: 40px;
         }
+
         h3 { margin: 0 0 15px 0; font-size: 20px; color: #f59600; text-transform: uppercase; border-bottom: 1px solid #444; padding-bottom: 8px; }
         label { display: block; font-size: 15px; margin-bottom: 5px; color: #bbb; }
         input[type="text"], input[type="number"] {
@@ -35,11 +38,11 @@
         .checkbox-group input[type="checkbox"] { width: 20px; height: 20px; cursor: pointer; margin: 0; }
         .checkbox-group label { color: #fff; font-size: 15px; cursor: pointer; margin: 0; }
 
-        .result-box { background-color: #000; padding: 15px; border-radius: 0; border: 1px solid #f59600; margin-top: 20px; }
-        .result-box label { color: #f59600; }
-        .result-box input { width: 100%; margin-bottom: 10px; background-color: #222; border: 1px solid #444; color: #00ffcc; font-family: monospace; font-size: 12px; padding: 10px; box-sizing: border-box; }
+        .result-box { background-color: #000; padding: 20px; border-radius: 0; border: 1px solid #f59600; margin-top: 25px; }
+        .result-box label { color: #f59600; font-size: 16px; }
+        .result-box input { width: 100%; margin-bottom: 15px; background-color: #222; border: 1px solid #444; color: #00ffcc; font-family: monospace; font-size: 13px; padding: 12px; box-sizing: border-box; }
 
-        .btn-group { display: flex; gap: 10px; margin-top: 10px; }
+        .btn-group { display: flex; gap: 10px; }
         button {
             flex: 1; padding: 15px; border: none; border-radius: 0; cursor: pointer; 
             text-transform: uppercase; font-size: 18px; transition: 0.2s;
@@ -48,45 +51,54 @@
         #btn-copy:hover { background-color: #555; }
         #btn-open { background-color: #f59600; color: #fff; }
         #btn-open:hover { background-color: #ffaa00; }
+
+        /* 💡 ถ้าเปิดในมือถือหรือจอเล็ก ให้ตารางพับกลับมาเป็น 1 คอลัมน์เหมือนเดิม */
+        @media (max-width: 800px) {
+            #setup-panel { grid-template-columns: 1fr; width: 100%; max-width: 450px; gap: 20px; padding: 20px; }
+        }
     </style>
 </head>
 <body>
 
     <div id="setup-panel">
-        <h3>1. API CONFIGURATION</h3>
-        <label>Tournament ID:</label>
-        <input type="text" id="input-tourney-id" value="" placeholder="e.g., sea-thsc">
+        <div class="panel-col">
+            <h3>1. API CONFIGURATION</h3>
+            <label>Tournament ID:</label>
+            <input type="text" id="input-tourney-id" value="" placeholder="e.g., sea-thsc">
 
-        <h3>2. THEME COLORS</h3>
-        <div class="color-grid">
-            <div class="color-item"><label>Header BG</label><input type="color" id="bg" value="#f59600"></div>
-            <div class="color-item"><label>Header Text</label><input type="color" id="ht" value="#ffffff"></div>
-            <div class="color-item"><label>Alive Team BG</label><input type="color" id="tba" value="#ffffff"></div>
-            <div class="color-item"><label>Alive Team Text</label><input type="color" id="tta" value="#000000"></div>
-            <div class="color-item"><label>Dead Team BG</label><input type="color" id="tbd" value="#222222"></div>
-            <div class="color-item"><label>Dead Team Text</label><input type="color" id="ttd" value="#7a7a7a"></div>
-            <div class="color-item"><label>Alive HP Bar</label><input type="color" id="hpa" value="#2ecc71"></div>
-            <div class="color-item"><label>Knocked HP Bar</label><input type="color" id="hpk" value="#ff0000"></div>
-            <div class="color-item"><label>Eliminated BG</label><input type="color" id="ebg" value="#ccee00"></div>
-            <div class="color-item"><label>Eliminated Text</label><input type="color" id="etx" value="#111111"></div>
+            <h3>2. THEME COLORS</h3>
+            <div class="color-grid">
+                <div class="color-item"><label>Header BG</label><input type="color" id="bg" value="#f59600"></div>
+                <div class="color-item"><label>Header Text</label><input type="color" id="ht" value="#ffffff"></div>
+                <div class="color-item"><label>Alive Team BG</label><input type="color" id="tba" value="#ffffff"></div>
+                <div class="color-item"><label>Alive Team Text</label><input type="color" id="tta" value="#000000"></div>
+                <div class="color-item"><label>Dead Team BG</label><input type="color" id="tbd" value="#222222"></div>
+                <div class="color-item"><label>Dead Team Text</label><input type="color" id="ttd" value="#7a7a7a"></div>
+                <div class="color-item"><label>Alive HP Bar</label><input type="color" id="hpa" value="#2ecc71"></div>
+                <div class="color-item"><label>Knocked HP Bar</label><input type="color" id="hpk" value="#ff0000"></div>
+                <div class="color-item"><label>Eliminated BG</label><input type="color" id="ebg" value="#ccee00"></div>
+                <div class="color-item"><label>Eliminated Text</label><input type="color" id="etx" value="#111111"></div>
+            </div>
         </div>
 
-        <h3>3. BANNER SETTINGS</h3>
-        <div class="checkbox-group">
-            <input type="checkbox" id="check-use-gif" checked>
-            <label for="check-use-gif">Use Custom ELIMINATED.gif</label>
-        </div>
-        <div>
-            <label>Banner/GIF Duration (Seconds):</label>
-            <input type="number" id="input-gif-duration" value="4.0" step="0.1" style="margin-bottom: 0;">
-        </div>
+        <div class="panel-col">
+            <h3>3. BANNER SETTINGS</h3>
+            <div class="checkbox-group">
+                <input type="checkbox" id="check-use-gif" checked>
+                <label for="check-use-gif">Use Custom ELIMINATED.gif</label>
+            </div>
+            <div>
+                <label>Banner/GIF Duration (Seconds):</label>
+                <input type="number" id="input-gif-duration" value="4.0" step="0.1" style="margin-bottom: 0;">
+            </div>
 
-        <div class="result-box">
-            <label>🔗 OBS Browser Source URL:</label>
-            <input type="text" id="generated-url" readonly>
-            <div class="btn-group">
-                <button id="btn-copy" onclick="copyLink()">📋 COPY URL</button>
-                <button id="btn-open" onclick="openLink()">TEST OVERLAY ↗</button>
+            <div class="result-box">
+                <label>🔗 OBS Browser Source URL:</label>
+                <input type="text" id="generated-url" readonly>
+                <div class="btn-group">
+                    <button id="btn-copy" onclick="copyLink()">📋 COPY URL</button>
+                    <button id="btn-open" onclick="openLink()">TEST OVERLAY ↗</button>
+                </div>
             </div>
         </div>
     </div>
@@ -124,7 +136,6 @@
         inputs.forEach(input => input.addEventListener('change', updateLink));
 
         function copyLink() {
-            // เช็คก่อนว่าใส่ Tournament ID หรือยัง
             if(document.getElementById('input-tourney-id').value.trim() === "") {
                 alert("Please enter a Tournament ID first."); 
                 document.getElementById('input-tourney-id').focus();
