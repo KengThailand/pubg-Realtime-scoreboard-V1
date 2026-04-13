@@ -338,7 +338,8 @@
                 let teamIsAlive = false, teamInBlueZone = false, revivedPlayersQueue = [];
                 let dotsHtml = '', playerDetailsHtml = '', teamIsRecalling = false; 
 
-                if (team.isRecalling === true || team.is_recalling === true || team.bluechip_state === 'recalling') teamIsRecalling = true;
+                // 💡 แก้ไขเฉพาะตรงนี้ให้รับค่าตัวเลข หรือ string จาก API ได้หลากหลายขึ้น
+                if (team.isRecalling || team.is_recalling || team.bluechip_state === 'recalling') teamIsRecalling = true;
 
                 for (let i = 0; i < 4; i++) {
                     const p = team.players ? team.players[i] : null;
@@ -361,7 +362,9 @@
                             }
                         }
                         playerStates[rawName] = isAlive; 
-                        if (p.isRecalling === true || p.isReviving === true || p.bluechip_state === 'recalling') teamIsRecalling = true;
+                        
+                        // 💡 แก้ไขเฉพาะตรงนี้เหมือนกัน เพื่อให้จับสถานะฝั่ง Live API ได้
+                        if (p.isRecalling || p.is_recalling || p.isReviving || p.is_reviving || p.bluechip_state === 'recalling') teamIsRecalling = true;
                     }
 
                     const colorSmall = isKnocked ? 'var(--c-tick-knocked)' : (isAlive ? 'var(--c-tick-alive)' : 'transparent');
