@@ -55,7 +55,7 @@
     <div id="setup-panel">
         <h3>1. API CONFIGURATION</h3>
         <label>Tournament ID:</label>
-        <input type="text" id="input-tourney-id" value="sea-thsc" placeholder="เช่น sea-thsc">
+        <input type="text" id="input-tourney-id" value="sea-thsc" placeholder="e.g., sea-thsc">
 
         <h3>2. THEME COLORS</h3>
         <div class="color-grid">
@@ -74,15 +74,15 @@
         <h3>3. BANNER SETTINGS</h3>
         <div class="checkbox-group">
             <input type="checkbox" id="check-use-gif" checked>
-            <label for="check-use-gif">ใช้รูป ELIMINATED.gif ของตัวเอง</label>
+            <label for="check-use-gif">Use Custom ELIMINATED.gif</label>
         </div>
         <div>
-            <label>ความยาวของป้ายตาย/GIF (วินาที):</label>
+            <label>Banner/GIF Duration (Seconds):</label>
             <input type="number" id="input-gif-duration" value="4.0" step="0.1" style="margin-bottom: 0;">
         </div>
 
         <div class="result-box">
-            <label>🔗 ลิงก์สำหรับนำไปใส่ใน OBS Browser Source:</label>
+            <label>🔗 OBS Browser Source URL:</label>
             <input type="text" id="generated-url" readonly>
             <div class="btn-group">
                 <button id="btn-copy" onclick="copyLink()">📋 COPY URL</button>
@@ -107,7 +107,6 @@
             const gif = document.getElementById('check-use-gif').checked;
             const dur = document.getElementById('input-gif-duration').value;
 
-            // 💡 แก้บัค URL Generation ให้รองรับ GitHub Pages เป๊ะๆ
             let currentUrl = window.location.href.split('?')[0];
             if (currentUrl.endsWith('index.html')) {
                 currentUrl = currentUrl.replace('index.html', '');
@@ -120,7 +119,6 @@
             document.getElementById('generated-url').value = finalUrl;
         }
 
-        // อัปเดตลิงก์ทันทีที่มีการเปลี่ยนแปลง
         const inputs = document.querySelectorAll('input');
         inputs.forEach(input => input.addEventListener('input', updateLink));
         inputs.forEach(input => input.addEventListener('change', updateLink));
@@ -129,13 +127,13 @@
             const copyText = document.getElementById("generated-url");
             copyText.select();
             document.execCommand("copy");
-            alert("ก๊อปปี้ลิงก์สำหรับใส่ใน OBS เรียบร้อยแล้วครับ!");
+            alert("URL copied to clipboard!");
         }
 
         function openLink() {
             const url = document.getElementById("generated-url").value;
             if(document.getElementById('input-tourney-id').value.trim() === "") {
-                alert("กรุณาใส่ Tournament ID ด้วยครับ"); return;
+                alert("Please enter a Tournament ID."); return;
             }
             window.open(url, '_blank');
         }
