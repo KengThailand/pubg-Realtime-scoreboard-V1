@@ -1,7 +1,4 @@
 # 🎮 PUBG Live Scoreboard Overlay
-
-A professional, real-time PUBG esports scoreboard overlay designed for OBS Studio. This project separates the Control Panel and the Display Overlay, allowing you to configure the graphics from any device via GitHub Pages while pulling heavy assets (like team logos and GIFs) locally to ensure zero lag during live broadcasts.
-
 ## ✨ Features
 * **Real-Time Data:** Automatically fetches live match data from the tournament API.
 * **Remote Control Panel:** Customize colors, text, and Tournament IDs remotely via a web-based dashboard.
@@ -37,4 +34,3 @@ To use this overlay perfectly, you need to set up two parts:
    * Set **Width** to `320` (Important: Do not use 270px, or the right-side icons will be cut off).
    * Set **Height** to `1000` (or according to your screen proportion).
 
-Enjoy your professional broadcast! 🎥
