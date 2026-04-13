@@ -55,7 +55,7 @@
     <div id="setup-panel">
         <h3>1. API CONFIGURATION</h3>
         <label>Tournament ID:</label>
-        <input type="text" id="input-tourney-id" value="sea-thsc" placeholder="e.g., sea-thsc">
+        <input type="text" id="input-tourney-id" value="" placeholder="e.g., sea-thsc">
 
         <h3>2. THEME COLORS</h3>
         <div class="color-grid">
@@ -124,6 +124,12 @@
         inputs.forEach(input => input.addEventListener('change', updateLink));
 
         function copyLink() {
+            // เช็คก่อนว่าใส่ Tournament ID หรือยัง
+            if(document.getElementById('input-tourney-id').value.trim() === "") {
+                alert("Please enter a Tournament ID first."); 
+                document.getElementById('input-tourney-id').focus();
+                return;
+            }
             const copyText = document.getElementById("generated-url");
             copyText.select();
             document.execCommand("copy");
@@ -133,7 +139,9 @@
         function openLink() {
             const url = document.getElementById("generated-url").value;
             if(document.getElementById('input-tourney-id').value.trim() === "") {
-                alert("Please enter a Tournament ID."); return;
+                alert("Please enter a Tournament ID."); 
+                document.getElementById('input-tourney-id').focus();
+                return;
             }
             window.open(url, '_blank');
         }
