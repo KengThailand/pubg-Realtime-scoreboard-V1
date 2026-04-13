@@ -13,7 +13,6 @@
         * { font-family: 'TransducerCondensed', sans-serif; letter-spacing: 0.5px; font-weight: normal !important; }
         body { margin: 0; padding: 40px 20px; background-color: #222; display: flex; justify-content: center; align-items: flex-start; }
 
-        /* 💡 แก้ไข: ขยายความกว้างและแบ่งเป็นตาราง 2 คอลัมน์ (Grid) */
         #setup-panel {
             background-color: #1a1a1a; padding: 30px; border-radius: 0; width: 850px;
             box-sizing: border-box; color: #fff; 
@@ -38,21 +37,20 @@
         .checkbox-group input[type="checkbox"] { width: 20px; height: 20px; cursor: pointer; margin: 0; }
         .checkbox-group label { color: #fff; font-size: 15px; cursor: pointer; margin: 0; }
 
-        .result-box { background-color: #000; padding: 20px; border-radius: 0; border: 1px solid #f59600; margin-top: 25px; }
-        .result-box label { color: #f59600; font-size: 16px; }
+        .result-box { background-color: #000; padding: 20px; border-radius: 0; border: 1px solid #f59600; margin-top: 10px; }
+        .result-box label { color: #f59600; font-size: 15px; font-weight: bold !important; display: block; margin-bottom: 8px;}
         .result-box input { width: 100%; margin-bottom: 15px; background-color: #222; border: 1px solid #444; color: #00ffcc; font-family: monospace; font-size: 13px; padding: 12px; box-sizing: border-box; }
 
         .btn-group { display: flex; gap: 10px; }
         button {
             flex: 1; padding: 15px; border: none; border-radius: 0; cursor: pointer; 
-            text-transform: uppercase; font-size: 18px; transition: 0.2s;
+            text-transform: uppercase; font-size: 18px; transition: 0.2s; font-weight: bold !important;
         }
         #btn-copy { background-color: #444; color: #fff; }
         #btn-copy:hover { background-color: #555; }
         #btn-open { background-color: #f59600; color: #fff; }
         #btn-open:hover { background-color: #ffaa00; }
 
-        /* 💡 ถ้าเปิดในมือถือหรือจอเล็ก ให้ตารางพับกลับมาเป็น 1 คอลัมน์เหมือนเดิม */
         @media (max-width: 800px) {
             #setup-panel { grid-template-columns: 1fr; width: 100%; max-width: 450px; gap: 20px; padding: 20px; }
         }
@@ -92,12 +90,23 @@
                 <input type="number" id="input-gif-duration" value="4.0" step="0.1" style="margin-bottom: 0;">
             </div>
 
-            <div class="result-box">
-                <label>🔗 OBS Browser Source URL:</label>
+            <div class="result-box" style="margin-top: 25px;">
+                <label>🔴 LIVE URL (For Real Match):</label>
                 <input type="text" id="generated-url" readonly>
                 <div class="btn-group">
-                    <button id="btn-copy" onclick="copyLink()">📋 COPY URL</button>
-                    <button id="btn-open" onclick="openLink()">TEST OVERLAY ↗</button>
+                    <button id="btn-copy" onclick="copyLink('generated-url')">📋 COPY URL</button>
+                    <button id="btn-open" onclick="openLink('generated-url')">OPEN LIVE ↗</button>
+                </div>
+            </div>
+
+            <h3 style="margin-top: 30px; color: #2ecc71; border-bottom: 1px solid #2ecc71;">4. DEMO & TEST SYSTEM</h3>
+            <p style="font-size: 13px; color: #bbb; margin-top: -10px;">Use this URL to automatically simulate Eliminations, Revives, and Top 4 animations in OBS without a real match.</p>
+            <div class="result-box" style="border-color: #2ecc71;">
+                <label style="color: #2ecc71;">🧪 DEMO URL (For Testing Only):</label>
+                <input type="text" id="demo-url" readonly>
+                <div class="btn-group">
+                    <button onclick="copyLink('demo-url')" style="background-color: #27ae60; color: #fff;">📋 COPY DEMO</button>
+                    <button onclick="openLink('demo-url')" style="background-color: #2ecc71; color: #111;">TEST DEMO ↗</button>
                 </div>
             </div>
         </div>
@@ -105,7 +114,7 @@
 
     <script>
         function updateLink() {
-            const tourney = document.getElementById('input-tourney-id').value.trim();
+            const tourney = document.getElementById('input-tourney-id').value.trim() || 'demo';
             const bg = document.getElementById('bg').value.replace('#', '');
             const ht = document.getElementById('ht').value.replace('#', '');
             const tba = document.getElementById('tba').value.replace('#', '');
@@ -120,36 +129,37 @@
             const dur = document.getElementById('input-gif-duration').value;
 
             let currentUrl = window.location.href.split('?')[0];
-            if (currentUrl.endsWith('index.html')) {
-                currentUrl = currentUrl.replace('index.html', '');
-            }
-            if (!currentUrl.endsWith('/')) {
-                currentUrl += '/';
-            }
+            if (currentUrl.endsWith('index.html')) currentUrl = currentUrl.replace('index.html', '');
+            if (!currentUrl.endsWith('/')) currentUrl += '/';
             
-            const finalUrl = `${currentUrl}overlay.html?tourney=${tourney}&bg=${bg}&ht=${ht}&tba=${tba}&tta=${tta}&tbd=${tbd}&ttd=${ttd}&hpa=${hpa}&hpk=${hpk}&ebg=${ebg}&etx=${etx}&gif=${gif}&dur=${dur}`;
-            document.getElementById('generated-url').value = finalUrl;
+            const params = `bg=${bg}&ht=${ht}&tba=${tba}&tta=${tta}&tbd=${tbd}&ttd=${ttd}&hpa=${hpa}&hpk=${hpk}&ebg=${ebg}&etx=${etx}&gif=${gif}&dur=${dur}`;
+            
+            // ลิงก์จริง
+            document.getElementById('generated-url').value = `${currentUrl}overlay.html?tourney=${tourney}&${params}`;
+            
+            // 💡 ลิงก์ทดสอบ (ใส่พารามิเตอร์ demo=true)
+            document.getElementById('demo-url').value = `${currentUrl}overlay.html?demo=true&${params}`;
         }
 
         const inputs = document.querySelectorAll('input');
         inputs.forEach(input => input.addEventListener('input', updateLink));
         inputs.forEach(input => input.addEventListener('change', updateLink));
 
-        function copyLink() {
-            if(document.getElementById('input-tourney-id').value.trim() === "") {
-                alert("Please enter a Tournament ID first."); 
+        function copyLink(inputId) {
+            if(inputId === 'generated-url' && document.getElementById('input-tourney-id').value.trim() === "") {
+                alert("Please enter a Tournament ID for the Live URL."); 
                 document.getElementById('input-tourney-id').focus();
                 return;
             }
-            const copyText = document.getElementById("generated-url");
+            const copyText = document.getElementById(inputId);
             copyText.select();
             document.execCommand("copy");
-            alert("URL copied to clipboard!");
+            alert(inputId === 'demo-url' ? "Demo URL copied to clipboard!" : "Live URL copied to clipboard!");
         }
 
-        function openLink() {
-            const url = document.getElementById("generated-url").value;
-            if(document.getElementById('input-tourney-id').value.trim() === "") {
+        function openLink(inputId) {
+            const url = document.getElementById(inputId).value;
+            if(inputId === 'generated-url' && document.getElementById('input-tourney-id').value.trim() === "") {
                 alert("Please enter a Tournament ID."); 
                 document.getElementById('input-tourney-id').focus();
                 return;

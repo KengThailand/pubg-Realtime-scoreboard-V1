@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>PUBG Scoreboard - OBS Overlay</title>
+    <title>PUBG Scoreboard - Advanced OBS Overlay</title>
     <style>
         :root {
             --c-header-bg: #f59600; --c-header-text: #ffffff;
@@ -14,14 +14,16 @@
             --gif-duration: 4s; 
         }
 
+        /* 💡 โหลดฟอนต์ transducer-condensedbold.otf */
         @font-face {
             font-family: 'TransducerCondensed';
             src: url('transducer-condensedbold.otf') format('opentype');
             font-weight: normal; font-style: normal;
         }
 
+        /* 💡 บังคับให้ทุกอย่างบนหน้าจอใช้ฟอนต์นี้เท่านั้น */
         * {
-            font-family: 'TransducerCondensed', sans-serif;
+            font-family: 'TransducerCondensed', sans-serif !important;
             letter-spacing: 0.5px;
             font-weight: normal !important; 
             -webkit-font-smoothing: antialiased; 
@@ -30,22 +32,10 @@
 
         body { margin: 0; padding: 20px; background-color: transparent; }
 
-        /* 💡 แก้ไข 1: ลดความกว้างรวมของตารางลงเหลือ 260px (จาก 270px) เพื่อดึงขอบขวาเข้ามา */
-        .scoreboard-container { 
-            display: flex; flex-direction: column; width: 260px; position: relative; 
-            border-radius: 0px !important; 
-        }
+        .scoreboard-container { display: flex; flex-direction: column; width: 260px; position: relative; border-radius: 0px !important; }
         #scoreboard { display: flex; flex-direction: column; width: 100%; }
         
-        .header-row { 
-            height: 28px; position: relative; z-index: 20; 
-            background-color: var(--c-header-bg); color: var(--c-header-text); 
-            box-shadow: 0px 4px 10px rgba(0,0,0,0.5); border-radius: 0px !important; 
-        }
-        
-        /* 💡 แก้ไข 2: ปรับสัดส่วน Grid ใหม่ 
-           ลดขนาดคอลัมน์ ALIVE (จาก 46px -> 42px), PTS (จาก 34px -> 30px), KILLS (จาก 42px -> 38px)
-           ทำให้ข้อมูลทั้งหมดโดนดึงไปทางซ้ายอย่างเป็นธรรมชาติ */
+        .header-row { height: 28px; position: relative; z-index: 20; background-color: var(--c-header-bg); color: var(--c-header-text); border-radius: 0px !important; }
         .row-grid { display: grid; grid-template-columns: 24px minmax(0, 1fr) 42px 30px 38px; align-items: center; box-sizing: border-box; padding: 0 4px; }
         
         .team-wrapper { position: relative; transition: transform 0.6s cubic-bezier(0.22, 1, 0.36, 1); z-index: 1; }
@@ -56,12 +46,12 @@
             text-transform: uppercase; position: relative; overflow: hidden;
             transition: max-height 0.4s ease, opacity 0.4s ease, background-color 0.4s ease;
             z-index: 2; background-color: var(--c-team-bg-alive); color: var(--c-team-text-alive);
-            box-shadow: 0px 2px 8px rgba(0,0,0,0.4); border-radius: 0px !important;
+            border-radius: 0px !important;
         }
 
-        .team-row-inner .row-grid { height: 36px; }
+        .team-row-inner .row-grid { height: 32px; }
         .team-row-inner.expanded .row-grid { border-bottom: 1px solid rgba(128, 128, 128, 0.3); margin-bottom: 5px; }
-        .team-row-inner.collapsed { max-height: 36px; padding-bottom: 0; }
+        .team-row-inner.collapsed { max-height: 32px; padding-bottom: 0; }
         .team-row-inner.expanded { max-height: 250px; padding-bottom: 8px; }
         
         .team-row-inner.first-place { border-bottom: 1px solid #bfbfbf; }
@@ -69,26 +59,30 @@
         .team-row-inner.eliminated-team { background-color: var(--c-team-bg-dead) !important; color: var(--c-team-text-dead) !important; }
 
         @keyframes bluechip-glow { 
-            0% { transform: translateY(-50%) scale(1); filter: drop-shadow(0px 0px 2px rgba(0, 191, 255, 0.6)); } 
-            50% { transform: translateY(-50%) scale(1.1); filter: drop-shadow(0px 0px 8px rgba(0, 191, 255, 0.9)); } 
-            100% { transform: translateY(-50%) scale(1); filter: drop-shadow(0px 0px 2px rgba(0, 191, 255, 0.6)); } 
+            0% { filter: drop-shadow(2px 0px 2px rgba(0, 191, 255, 0.5)) brightness(1); } 
+            50% { filter: drop-shadow(4px 0px 8px rgba(0, 191, 255, 1)) brightness(1.25); } 
+            100% { filter: drop-shadow(2px 0px 2px rgba(0, 191, 255, 0.5)) brightness(1); } 
         }
+        
         .blue-chip-icon {
-            /* ขยับไอคอน Blue Chip เข้ามาตามขอบขวาที่เล็กลง */
-            position: absolute; right: -22px; top: 18px; width: 24px; height: 24px;
-            object-fit: contain; z-index: 1; animation: bluechip-glow 1.5s infinite ease-in-out; display: none; 
+            position: absolute; right: -30px; top: 0; width: 32px; height: 32px; 
+            object-fit: contain; object-position: left center;
+            z-index: 1; animation: bluechip-glow 1.5s infinite ease-in-out; display: none; 
         }
 
         .col-rank, .col-team, .col-alive, .col-pts, .col-kills { display: flex; align-items: center; height: 100%; line-height: 1; }
         .col-rank { justify-content: center; font-size: 16px; }
         .col-team { justify-content: flex-start; padding-left: 4px; }
         
-        /* 💡 แก้ไข 3: ลดค่า transform ลงเล็กน้อย เพื่อให้มันอยู่กึ่งกลางคอลัมน์ที่แคบลง */
         .col-alive { justify-content: center; gap: 2px; transform: translateX(-2px); }
         .col-pts { justify-content: center; font-size: 18px; }
         .col-kills { justify-content: center; font-size: 18px; }
 
         .header-row .col-rank, .header-row .col-team, .header-row .col-alive, .header-row .col-pts, .header-row .col-kills { font-size: 14px; letter-spacing: 0px; }
+        
+        /* 💡 แก้ไข: ขยับคำว่า TEAM ให้มาอยู่ตรงกลางระหว่างโลโก้ (28px) กับชื่อทีมพอดีเป๊ะ */
+        .header-row .col-team { padding-left: 28px; } 
+
         .header-row .col-alive { transform: translateX(-2px); }
         .header-row .col-pts { transform: translateX(0); }
         .header-row .col-kills { transform: translateX(0); }
@@ -96,7 +90,7 @@
         .team-logo { width: 28px; height: 28px; margin-right: 8px; object-fit: contain; background-color: transparent; flex-shrink: 0; }
         .team-name { font-size: 20px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; line-height: 1; }
 
-        .alive-bar { position: relative; width: 6px; height: 19px; border-radius: 1px; border: 1px solid #000000; box-sizing: border-box; background-color: #111111; overflow: hidden; }
+        .alive-bar { position: relative; width: 6px; height: 18px; border-radius: 1px; border: 1px solid #000000; box-sizing: border-box; background-color: #111111; overflow: hidden; }
         .hp-fill-small { position: absolute; bottom: 0; left: 0; width: 100%; transition: height 0.5s ease-out, background-color 0.5s ease; }
 
         .player-list { padding: 2px 8px 6px 34px; display: flex; flex-direction: column; gap: 5px; }
@@ -109,39 +103,47 @@
         .data-layer { position: relative; z-index: 2; width: 100%; }
         .banner-layer { position: absolute; top: 0; left: 0; width: 100%; height: 100%; z-index: 10; pointer-events: none; }
 
-        @keyframes slide-in-pause-out { 0% { transform: translateX(-100%); } 15% { transform: translateX(0); } 80% { transform: translateX(0); } 100% { transform: translateX(100%); } }
+        @keyframes slide-in-pause-out { 
+            0% { transform: translateX(-105%); opacity: 1; } 
+            15% { transform: translateX(0); opacity: 1; } 
+            85% { transform: translateX(0); opacity: 1; } 
+            99% { transform: translateX(105%); opacity: 1; } 
+            100% { transform: translateX(105%); opacity: 0; } 
+        }
         
         .eliminated-banner.default-mode { 
-            position: absolute; top: 0; left: 0; width: 100%; height: 36px; 
+            position: absolute; top: 0; left: 0; width: 100%; height: 32px; 
             background-color: var(--c-elim-bg); color: var(--c-elim-text); 
-            display: flex; align-items: center; justify-content: center; font-size: 18px; transform: translateX(-100%); 
+            display: flex; align-items: center; justify-content: center; font-size: 18px; transform: translateX(-105%); 
         }
         .eliminated-banner.default-mode.animate { animation: slide-in-pause-out var(--gif-duration) ease-in-out forwards; }
 
         .eliminated-banner.gif-mode { 
-            position: absolute; top: 0; left: 0; width: 100%; height: 36px; 
+            position: absolute; top: 0; left: 0; width: 100%; height: 32px; 
             background-size: cover; background-position: center; background-color: transparent; 
-            display: flex; align-items: center; justify-content: center; transform: translateX(-100%); 
+            display: flex; align-items: center; justify-content: center; transform: translateX(-105%); 
         }
         .eliminated-banner.gif-mode.animate { animation: slide-in-pause-out var(--gif-duration) ease-in-out forwards; }
         
         .revived-banner { 
-            position: absolute; top: 0; left: 0; width: 100%; height: 36px; 
+            position: absolute; top: 0; left: 0; width: 100%; height: 32px; 
             background-image: url('./REVIVED.png'); background-size: cover; background-position: center;
             color: #ffffff; text-shadow: 1px 1px 2px rgba(0,0,0,0.8); 
-            display: flex; align-items: center; justify-content: center; font-size: 17px; transform: translateX(-100%); 
+            display: flex; align-items: center; justify-content: center; font-size: 17px; transform: translateX(-105%); 
         }
         .revived-banner.animate { animation: slide-in-pause-out 4s ease-in-out forwards; }
         
         @keyframes bluezone-pulse { 0% { background-color: rgba(0, 150, 255, 0.2); } 50% { background-color: rgba(0, 150, 255, 0.6); } 100% { background-color: rgba(0, 150, 255, 0.2); } }
-        .team-row-inner.in-bluezone::before { content: ''; position: absolute; top: 0; left: 0; width: 100%; height: 36px; animation: bluezone-pulse 1.5s infinite; z-index: 1; pointer-events: none; }
+        .team-row-inner.in-bluezone::before { content: ''; position: absolute; top: 0; left: 0; width: 100%; height: 32px; animation: bluezone-pulse 1.5s infinite; z-index: 1; pointer-events: none; }
         
         #error-msg { color: #f59600; font-size: 14px; background: #222; padding: 15px; border: 1px solid #f59600; display: none; }
+        #demo-badge { position: absolute; top: -15px; left: 0; background: #2ecc71; color: #111; padding: 2px 8px; font-size: 12px; font-weight: bold !important; border-radius: 4px; display: none; z-index: 100; }
     </style>
 </head>
 <body>
 
     <div id="error-msg">กรุณาระบุ Tournament ID ผ่านการเจนลิงก์จากหน้า Control Panel (index.html) ก่อนนำมาใส่ใน OBS ครับ</div>
+    <div id="demo-badge">TEST MODE ACTIVED</div>
 
     <div id="main-scoreboard" style="display: none;">
         <div class="scoreboard-container">
@@ -155,39 +157,12 @@
     <script>
         const urlParams = new URLSearchParams(window.location.search);
         const tourneyId = urlParams.get('tourney');
+        const isDemoMode = urlParams.get('demo') === 'true';
 
         let API_URL = "";
         const LOCAL_LOGO_PATH = "http://localhost/Keng/"; 
         let useGifMode = true; 
         let gifDuration = 4.0; 
-
-        if (!tourneyId) {
-            document.getElementById('error-msg').style.display = 'block';
-        } else {
-            document.getElementById('main-scoreboard').style.display = 'block';
-
-            if(urlParams.has('bg')) document.documentElement.style.setProperty('--c-header-bg', '#' + urlParams.get('bg'));
-            if(urlParams.has('ht')) document.documentElement.style.setProperty('--c-header-text', '#' + urlParams.get('ht'));
-            if(urlParams.has('tba')) document.documentElement.style.setProperty('--c-team-bg-alive', '#' + urlParams.get('tba'));
-            if(urlParams.has('tta')) document.documentElement.style.setProperty('--c-team-text-alive', '#' + urlParams.get('tta'));
-            if(urlParams.has('tbd')) document.documentElement.style.setProperty('--c-team-bg-dead', '#' + urlParams.get('tbd'));
-            if(urlParams.has('ttd')) document.documentElement.style.setProperty('--c-team-text-dead', '#' + urlParams.get('ttd'));
-            if(urlParams.has('hpa')) document.documentElement.style.setProperty('--c-hp-alive', '#' + urlParams.get('hpa'));
-            if(urlParams.has('hpk')) document.documentElement.style.setProperty('--c-hp-knocked', '#' + urlParams.get('hpk'));
-            if(urlParams.has('ebg')) document.documentElement.style.setProperty('--c-elim-bg', '#' + urlParams.get('ebg'));
-            if(urlParams.has('etx')) document.documentElement.style.setProperty('--c-elim-text', '#' + urlParams.get('etx'));
-            
-            if(urlParams.has('gif')) useGifMode = urlParams.get('gif') === 'true';
-            
-            if(urlParams.has('dur')) {
-                gifDuration = parseFloat(urlParams.get('dur')) || 4.0;
-                document.documentElement.style.setProperty('--gif-duration', `${gifDuration}s`);
-            }
-
-            API_URL = `https://domestic.atum.live/api/pubg/liveleaderboard?account_id=nttapon7799&series=${tourneyId}&tournament_id=${tourneyId}&mode=post&all_teams=true`;
-            fetchRealTimeData();
-            setInterval(fetchRealTimeData, 1500); 
-        }
 
         let currentTeamsEliminated = {}; 
         let playerStates = {}; 
@@ -196,10 +171,112 @@
         let isFirstRender = true;
         let top4EntryTime = 0; 
         let latestData = null;
+        let previousAliveCount = 0; 
+
+        function runDemoSimulator() {
+            let demoStep = 0;
+            let d = { data: { teams: [] } };
+            const demoTeams = ["TTB", "R3ZO", "BN", "KTC", "R1", "DWG", "LK", "SUP", "JKD", "BLS", "EXOS", "FUX", "ML", "SV", "WHY", "BABY"];
+            
+            function initDemoData() {
+                d.data.teams = [];
+                for (let i = 0; i < 16; i++) {
+                    d.data.teams.push({
+                        team_name: demoTeams[i], total_pts_rank: i + 1, total_pts_with_penalty: 160 - (i*5), match_kills: Math.floor(Math.random() * 5),
+                        players: [1,2,3,4].map(n => ({ name: demoTeams[i]+"_P"+n, isAlive: true, health: 100, isGroggy: false, isInBlueZone: false })),
+                        is_recalling: false, bluechip_state: 'normal'
+                    });
+                }
+            }
+
+            initDemoData();
+
+            function simulateStep() {
+                d.data.teams.forEach(t => {
+                    t.is_recalling = false;
+                    t.players.forEach(p => p.isRecalling = false);
+                });
+
+                if (demoStep === 0) {
+                    initDemoData(); 
+                }
+                else {
+                    d.data.teams.forEach(t => {
+                        let isAlive = t.players.some(p => p.isAlive);
+                        if (isAlive && Math.random() > 0.5) {
+                            let points = Math.floor(Math.random() * 3) + 1;
+                            t.match_kills += points;
+                            t.total_pts_with_penalty += points;
+                        }
+                    });
+
+                    d.data.teams.sort((a, b) => b.total_pts_with_penalty - a.total_pts_with_penalty);
+                    d.data.teams.forEach((t, i) => t.total_pts_rank = i + 1);
+
+                    const getTeam = (name) => d.data.teams.find(t => t.team_name === name);
+
+                    if (demoStep === 1) {
+                        let t1 = getTeam("TTB");
+                        if(t1) { t1.players[1].health = 20; t1.players[1].isGroggy = true; }
+                    }
+                    else if (demoStep === 2) {
+                        let r1 = getTeam("R1");
+                        if(r1) { 
+                            r1.players[2].isAlive = false; r1.players[3].isAlive = false; 
+                            r1.is_recalling = true; 
+                        }
+                        let baby = getTeam("BABY");
+                        if(baby) baby.players.forEach(p => p.isAlive = false);
+                    }
+                    else if (demoStep === 3) {
+                        let r1 = getTeam("R1");
+                        if(r1) { r1.players[2].isAlive = true; r1.players[3].isAlive = true; }
+                        
+                        let sv = getTeam("SV");
+                        let why = getTeam("WHY");
+                        if(sv) { sv.players.forEach(p => p.isAlive = false); sv.is_recalling = true; }
+                        if(why) { why.players.forEach(p => p.isAlive = false); why.is_recalling = true; }
+                    }
+                    else if (demoStep === 4) {
+                        let sv = getTeam("SV");
+                        let why = getTeam("WHY");
+                        if(sv) sv.players[0].isAlive = true;
+                        if(why) why.players[0].isAlive = true;
+                    }
+                    else if (demoStep === 5) {
+                        d.data.teams.forEach(t => {
+                            if(t.total_pts_rank > 4) t.players.forEach(p => p.isAlive = false);
+                        });
+                        let ttb = getTeam("TTB");
+                        if(ttb) ttb.is_recalling = true; 
+                    }
+                    else if (demoStep === 6) {
+                        let rank4Team = d.data.teams.find(t => t.total_pts_rank === 4);
+                        if (rank4Team) {
+                            rank4Team.players.forEach(p => p.isAlive = false);
+                        }
+                    }
+                }
+
+                renderScoreboard(d);
+                demoStep++;
+                if (demoStep > 7) demoStep = 0; 
+            }
+
+            simulateStep(); 
+            setInterval(simulateStep, 8000); 
+        }
 
         function renderScoreboard(data) {
             if (!data || !data.data || !data.data.teams) return;
             latestData = data; 
+
+            const totalAlivePlayers = data.data.teams.reduce((sum, t) => sum + (t.players ? t.players.filter(p => p.isAlive).length : 0), 0);
+            let isMatchReset = false;
+            if (totalAlivePlayers > previousAliveCount + 10 || isFirstRender) {
+                isMatchReset = true;
+            }
+            previousAliveCount = totalAlivePlayers;
 
             const scoreboard = document.getElementById('scoreboard');
             const oldPositions = {};
@@ -213,7 +290,7 @@
             const elimDurationMs = gifDuration * 1000;
 
             if (aliveTeamsCount <= 4 && !isMatchEnded) {
-                if (top4EntryTime === 0 && !isFirstRender) {
+                if (top4EntryTime === 0 && !isMatchReset) {
                     top4EntryTime = Date.now();
                     setTimeout(() => { if (latestData) renderScoreboard(latestData); }, elimDurationMs + 100); 
                 }
@@ -221,7 +298,7 @@
                 top4EntryTime = 0; 
             }
 
-            const isTop4Period = !isMatchEnded && aliveTeamsCount <= 4 && (isFirstRender || (Date.now() - top4EntryTime >= elimDurationMs));
+            const isTop4Period = !isMatchEnded && aliveTeamsCount <= 4 && (isMatchReset || (Date.now() - top4EntryTime >= elimDurationMs));
 
             if (isTop4Period && top4Teams.length === 0) {
                 top4Teams = aliveTeams.map(t => t.team_name);
@@ -254,8 +331,10 @@
                 wrapperRow.style.order = index; 
                 let innerRow = wrapperRow.querySelector('.team-row-inner');
 
-                let teamIsAlive = false, teamInBlueZone = false, justRevivedName = null;
+                let teamIsAlive = false, teamInBlueZone = false, revivedPlayersQueue = [];
                 let dotsHtml = '', playerDetailsHtml = '', teamIsRecalling = false; 
+
+                if (team.isRecalling === true || team.is_recalling === true || team.bluechip_state === 'recalling') teamIsRecalling = true;
 
                 for (let i = 0; i < 4; i++) {
                     const p = team.players ? team.players[i] : null;
@@ -263,11 +342,21 @@
 
                     if (p) {
                         isAlive = p.isAlive; hp = p.health !== undefined ? p.health : 100;
-                        isKnocked = p.isGroggy; pName = p.name || '';
+                        isKnocked = p.isGroggy; 
                         
+                        let rawName = p.name || '';
+                        let safeTeamName = team.team_name.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+                        let prefixRegex = new RegExp('^' + safeTeamName + '[_\\-\\s]?', 'i');
+                        pName = rawName.replace(prefixRegex, '');
+
                         if (isAlive) { teamIsAlive = true; if (p.isInBlueZone) teamInBlueZone = true; }
-                        if (p.name && playerStates[p.name] === false && isAlive === true) justRevivedName = p.name;
-                        if (p.name) playerStates[p.name] = isAlive;
+                        
+                        if (!isMatchReset) {
+                            if (playerStates[rawName] === false && isAlive === true) {
+                                revivedPlayersQueue.push(pName);
+                            }
+                        }
+                        playerStates[rawName] = isAlive; 
                         if (p.isRecalling === true || p.isReviving === true || p.bluechip_state === 'recalling') teamIsRecalling = true;
                     }
 
@@ -290,18 +379,18 @@
                     }
                 }
 
-                if (team.isRecalling === true || team.is_recalling === true || team.bluechip_state === 'recalling') teamIsRecalling = true;
-                if (isTop4Period) teamIsRecalling = false;
-
+                if (isTop4Period) teamIsRecalling = false; 
+                if (!teamIsAlive) teamIsRecalling = false; 
+                
                 const blueChipIcon = wrapperRow.querySelector('.blue-chip-icon');
                 if (blueChipIcon) blueChipIcon.style.display = teamIsRecalling ? 'block' : 'none';
 
-                if (isFirstRender && !teamIsAlive) {
+                if (isMatchReset && !teamIsAlive) {
                     currentTeamsEliminated[team.team_name] = true;
                     teamEliminatedTime[team.team_name] = 0; 
                 }
 
-                const isJustEliminated = !teamIsAlive && !currentTeamsEliminated[team.team_name] && !isFirstRender;
+                const isJustEliminated = !teamIsAlive && !currentTeamsEliminated[team.team_name] && !isMatchReset;
 
                 if (isJustEliminated) {
                     currentTeamsEliminated[team.team_name] = true;
@@ -314,7 +403,7 @@
                     
                     innerRow.querySelector('.banner-layer').innerHTML = `<div class="${bannerClass}" ${inlineStyle}>${bannerText}</div>`;
 
-                    setTimeout(() => { const b = innerRow.querySelector('.eliminated-banner'); if (b) b.remove(); }, elimDurationMs + 200);
+                    setTimeout(() => { const b = innerRow.querySelector('.eliminated-banner'); if (b) b.remove(); }, elimDurationMs + 50);
 
                     if (isTop4Period && !top4Teams.includes(team.team_name)) {
                         setTimeout(() => { innerRow.classList.remove('expanded'); innerRow.classList.add('collapsed'); }, elimDurationMs * 0.8); 
@@ -322,12 +411,22 @@
                     }
                 }
 
-                if (justRevivedName && !isFirstRender) {
-                    const cacheBuster = Date.now();
-                    const inlineStyle = `style="background-image: url('./REVIVED.png?t=${cacheBuster}');"`;
-                    innerRow.querySelector('.banner-layer').innerHTML = `<div class="revived-banner animate" ${inlineStyle}><span class="revived-text">REVIVED: ${justRevivedName}</span></div>`;
+                if (revivedPlayersQueue.length > 0 && !isMatchReset) {
                     currentTeamsEliminated[team.team_name] = false; 
-                    setTimeout(() => { const b = innerRow.querySelector('.revived-banner'); if (b) b.remove(); }, 4200);
+                    
+                    revivedPlayersQueue.forEach((playerName, idx) => {
+                        setTimeout(() => {
+                            const cacheBuster = Date.now() + idx;
+                            const bannerHtml = document.createElement('div');
+                            bannerHtml.className = 'revived-banner animate';
+                            bannerHtml.style.backgroundImage = `url('./REVIVED.png?t=${cacheBuster}')`;
+                            bannerHtml.innerHTML = `<span class="revived-text">REVIVED: ${playerName}</span>`;
+                            
+                            innerRow.querySelector('.banner-layer').appendChild(bannerHtml);
+                            
+                            setTimeout(() => { bannerHtml.remove(); }, 4050);
+                        }, idx * 4200);
+                    });
                 }
 
                 let expansionClass = 'collapsed', visibilityClass = '', eliminationClass = teamIsAlive ? '' : 'eliminated-team'; 
@@ -338,9 +437,11 @@
                     expansionClass = 'collapsed';
                 } else if (isTop4Period) {
                     if (top4Teams.includes(team.team_name)) {
-                        if (teamIsAlive) expansionClass = 'expanded';
-                        else if (timeSinceDeath < dynamicSlideOutMs) expansionClass = 'expanded';
-                        else expansionClass = 'collapsed';
+                        if (teamIsAlive) {
+                            expansionClass = 'expanded';
+                        } else {
+                            expansionClass = 'collapsed';
+                        }
                     } else {
                         if (timeSinceDeath < dynamicSlideOutMs) expansionClass = 'expanded';
                         else if (timeSinceDeath < elimDurationMs) expansionClass = 'collapsed';
@@ -408,6 +509,39 @@
                 renderScoreboard(apiData);
             } catch (error) {
                 console.error("Error fetching live leaderboard:", error);
+            }
+        }
+
+        if (!tourneyId && !isDemoMode) {
+            document.getElementById('error-msg').style.display = 'block';
+        } else {
+            document.getElementById('main-scoreboard').style.display = 'block';
+
+            if(urlParams.has('bg')) document.documentElement.style.setProperty('--c-header-bg', '#' + urlParams.get('bg'));
+            if(urlParams.has('ht')) document.documentElement.style.setProperty('--c-header-text', '#' + urlParams.get('ht'));
+            if(urlParams.has('tba')) document.documentElement.style.setProperty('--c-team-bg-alive', '#' + urlParams.get('tba'));
+            if(urlParams.has('tta')) document.documentElement.style.setProperty('--c-team-text-alive', '#' + urlParams.get('tta'));
+            if(urlParams.has('tbd')) document.documentElement.style.setProperty('--c-team-bg-dead', '#' + urlParams.get('tbd'));
+            if(urlParams.has('ttd')) document.documentElement.style.setProperty('--c-team-text-dead', '#' + urlParams.get('ttd'));
+            if(urlParams.has('hpa')) document.documentElement.style.setProperty('--c-hp-alive', '#' + urlParams.get('hpa'));
+            if(urlParams.has('hpk')) document.documentElement.style.setProperty('--c-hp-knocked', '#' + urlParams.get('hpk'));
+            if(urlParams.has('ebg')) document.documentElement.style.setProperty('--c-elim-bg', '#' + urlParams.get('ebg'));
+            if(urlParams.has('etx')) document.documentElement.style.setProperty('--c-elim-text', '#' + urlParams.get('etx'));
+            
+            if(urlParams.has('gif')) useGifMode = urlParams.get('gif') === 'true';
+            
+            if(urlParams.has('dur')) {
+                gifDuration = parseFloat(urlParams.get('dur')) || 4.0;
+                document.documentElement.style.setProperty('--gif-duration', `${gifDuration}s`);
+            }
+
+            if (isDemoMode) {
+                document.getElementById('demo-badge').style.display = 'block';
+                runDemoSimulator(); 
+            } else {
+                API_URL = `https://domestic.atum.live/api/pubg/liveleaderboard?account_id=nttapon7799&series=${tourneyId}&tournament_id=${tourneyId}&mode=post&all_teams=true`;
+                fetchRealTimeData();
+                setInterval(fetchRealTimeData, 1500); 
             }
         }
     </script>
