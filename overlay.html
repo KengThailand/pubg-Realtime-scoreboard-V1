@@ -11,17 +11,16 @@
             --c-team-bg-dead: #222222; --c-team-text-dead: #7a7a7a;
             --c-hp-alive: #2ecc71; --c-hp-knocked: #ff0000;
             --c-elim-bg: #ccee00; --c-elim-text: #111111;
+            --c-tick-alive: #ffffff; --c-tick-knocked: #ff0000;
             --gif-duration: 4s; 
         }
 
-        /* 💡 โหลดฟอนต์ transducer-condensedbold.otf */
         @font-face {
             font-family: 'TransducerCondensed';
             src: url('transducer-condensedbold.otf') format('opentype');
             font-weight: normal; font-style: normal;
         }
 
-        /* 💡 บังคับให้ทุกอย่างบนหน้าจอใช้ฟอนต์นี้เท่านั้น */
         * {
             font-family: 'TransducerCondensed', sans-serif !important;
             letter-spacing: 0.5px;
@@ -73,19 +72,14 @@
         .col-rank, .col-team, .col-alive, .col-pts, .col-kills { display: flex; align-items: center; height: 100%; line-height: 1; }
         .col-rank { justify-content: center; font-size: 16px; }
         .col-team { justify-content: flex-start; padding-left: 4px; }
-        
-        .col-alive { justify-content: center; gap: 2px; transform: translateX(-2px); }
-        .col-pts { justify-content: center; font-size: 18px; }
-        .col-kills { justify-content: center; font-size: 18px; }
-
-        .header-row .col-rank, .header-row .col-team, .header-row .col-alive, .header-row .col-pts, .header-row .col-kills { font-size: 14px; letter-spacing: 0px; }
-        
-        /* 💡 แก้ไข: ขยับคำว่า TEAM ให้มาอยู่ตรงกลางระหว่างโลโก้ (28px) กับชื่อทีมพอดีเป๊ะ */
         .header-row .col-team { padding-left: 28px; } 
 
+        .col-alive { justify-content: center; gap: 2px; transform: translateX(-2px); }
+        .col-pts, .col-kills { justify-content: center; font-size: 18px; }
+
+        .header-row .col-rank, .header-row .col-team, .header-row .col-alive, .header-row .col-pts, .header-row .col-kills { font-size: 14px; letter-spacing: 0px; }
         .header-row .col-alive { transform: translateX(-2px); }
-        .header-row .col-pts { transform: translateX(0); }
-        .header-row .col-kills { transform: translateX(0); }
+        .header-row .col-pts, .header-row .col-kills { transform: translateX(0); }
 
         .team-logo { width: 28px; height: 28px; margin-right: 8px; object-fit: contain; background-color: transparent; flex-shrink: 0; }
         .team-name { font-size: 20px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; line-height: 1; }
@@ -103,7 +97,17 @@
         .data-layer { position: relative; z-index: 2; width: 100%; }
         .banner-layer { position: absolute; top: 0; left: 0; width: 100%; height: 100%; z-index: 10; pointer-events: none; }
 
-        @keyframes slide-in-pause-out { 
+        /* 💡 แก้ไข: แอนิเมชันสไลด์เข้า -> ค้าง 1 วิ -> สไลด์ออก */
+        @keyframes slide-pause-out-banner { 
+            0% { transform: translateX(-105%); opacity: 1; } 
+            15% { transform: translateX(0); opacity: 1; }      /* เลื่อนเข้าไวปกติ */
+            75% { transform: translateX(0); opacity: 1; }      /* ค้างไว้ที่เดิม (ประมาณ 1 วินาที) */
+            95% { transform: translateX(105%); opacity: 1; }    /* เลื่อนออกไวปกติ */
+            100% { transform: translateX(105%); opacity: 0; } 
+        }
+
+        /* สำหรับ GIF Mode (ถ้าความยาว GIF สั้น ป้ายจะสไลด์ออกตามเวลาที่ตั้งไว้) */
+        @keyframes slide-in-pause-out-gif { 
             0% { transform: translateX(-105%); opacity: 1; } 
             15% { transform: translateX(0); opacity: 1; } 
             85% { transform: translateX(0); opacity: 1; } 
@@ -115,23 +119,23 @@
             position: absolute; top: 0; left: 0; width: 100%; height: 32px; 
             background-color: var(--c-elim-bg); color: var(--c-elim-text); 
             display: flex; align-items: center; justify-content: center; font-size: 18px; transform: translateX(-105%); 
+            animation: slide-pause-out-banner var(--gif-duration) ease-in-out forwards;
         }
-        .eliminated-banner.default-mode.animate { animation: slide-in-pause-out var(--gif-duration) ease-in-out forwards; }
 
         .eliminated-banner.gif-mode { 
             position: absolute; top: 0; left: 0; width: 100%; height: 32px; 
             background-size: cover; background-position: center; background-color: transparent; 
             display: flex; align-items: center; justify-content: center; transform: translateX(-105%); 
+            animation: slide-in-pause-out-gif var(--gif-duration) ease-in-out forwards;
         }
-        .eliminated-banner.gif-mode.animate { animation: slide-in-pause-out var(--gif-duration) ease-in-out forwards; }
         
         .revived-banner { 
             position: absolute; top: 0; left: 0; width: 100%; height: 32px; 
             background-image: url('./REVIVED.png'); background-size: cover; background-position: center;
             color: #ffffff; text-shadow: 1px 1px 2px rgba(0,0,0,0.8); 
             display: flex; align-items: center; justify-content: center; font-size: 17px; transform: translateX(-105%); 
+            animation: slide-pause-out-banner 4s ease-in-out forwards;
         }
-        .revived-banner.animate { animation: slide-in-pause-out 4s ease-in-out forwards; }
         
         @keyframes bluezone-pulse { 0% { background-color: rgba(0, 150, 255, 0.2); } 50% { background-color: rgba(0, 150, 255, 0.6); } 100% { background-color: rgba(0, 150, 255, 0.2); } }
         .team-row-inner.in-bluezone::before { content: ''; position: absolute; top: 0; left: 0; width: 100%; height: 32px; animation: bluezone-pulse 1.5s infinite; z-index: 1; pointer-events: none; }
@@ -360,7 +364,7 @@
                         if (p.isRecalling === true || p.isReviving === true || p.bluechip_state === 'recalling') teamIsRecalling = true;
                     }
 
-                    const colorSmall = isKnocked ? 'var(--c-hp-knocked)' : (isAlive ? '#ffffff' : 'transparent');
+                    const colorSmall = isKnocked ? 'var(--c-tick-knocked)' : (isAlive ? 'var(--c-tick-alive)' : 'transparent');
                     const colorLarge = isKnocked ? 'var(--c-hp-knocked)' : (isAlive ? 'var(--c-hp-alive)' : 'transparent');
                     const smallHeight = isKnocked ? 100 : (isAlive ? hp : 0);
                     const largeWidth = isKnocked ? 100 : (isAlive ? hp : 0);
@@ -523,6 +527,8 @@
             if(urlParams.has('tta')) document.documentElement.style.setProperty('--c-team-text-alive', '#' + urlParams.get('tta'));
             if(urlParams.has('tbd')) document.documentElement.style.setProperty('--c-team-bg-dead', '#' + urlParams.get('tbd'));
             if(urlParams.has('ttd')) document.documentElement.style.setProperty('--c-team-text-dead', '#' + urlParams.get('ttd'));
+            if(urlParams.has('tca')) document.documentElement.style.setProperty('--c-tick-alive', '#' + urlParams.get('tca'));
+            if(urlParams.has('tck')) document.documentElement.style.setProperty('--c-tick-knocked', '#' + urlParams.get('tck'));
             if(urlParams.has('hpa')) document.documentElement.style.setProperty('--c-hp-alive', '#' + urlParams.get('hpa'));
             if(urlParams.has('hpk')) document.documentElement.style.setProperty('--c-hp-knocked', '#' + urlParams.get('hpk'));
             if(urlParams.has('ebg')) document.documentElement.style.setProperty('--c-elim-bg', '#' + urlParams.get('ebg'));

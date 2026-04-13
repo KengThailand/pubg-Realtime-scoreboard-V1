@@ -50,6 +50,12 @@
         #btn-copy:hover { background-color: #555; }
         #btn-open { background-color: #f59600; color: #fff; }
         #btn-open:hover { background-color: #ffaa00; }
+        
+        .btn-small { padding: 10px; font-size: 14px; }
+        #btn-save { background-color: #27ae60; color: #fff; }
+        #btn-save:hover { background-color: #2ecc71; }
+        #btn-reset { background-color: #c0392b; color: #fff; }
+        #btn-reset:hover { background-color: #e74c3c; }
 
         @media (max-width: 800px) {
             #setup-panel { grid-template-columns: 1fr; width: 100%; max-width: 450px; gap: 20px; padding: 20px; }
@@ -72,10 +78,19 @@
                 <div class="color-item"><label>Alive Team Text</label><input type="color" id="tta" value="#000000"></div>
                 <div class="color-item"><label>Dead Team BG</label><input type="color" id="tbd" value="#222222"></div>
                 <div class="color-item"><label>Dead Team Text</label><input type="color" id="ttd" value="#7a7a7a"></div>
+                
+                <div class="color-item"><label>Alive Tick (ALIVE Col)</label><input type="color" id="tca" value="#ffffff"></div>
+                <div class="color-item"><label>Knocked Tick (ALIVE Col)</label><input type="color" id="tck" value="#ff0000"></div>
+                
                 <div class="color-item"><label>Alive HP Bar</label><input type="color" id="hpa" value="#2ecc71"></div>
                 <div class="color-item"><label>Knocked HP Bar</label><input type="color" id="hpk" value="#ff0000"></div>
                 <div class="color-item"><label>Eliminated BG</label><input type="color" id="ebg" value="#ccee00"></div>
                 <div class="color-item"><label>Eliminated Text</label><input type="color" id="etx" value="#111111"></div>
+            </div>
+            
+            <div class="btn-group" style="margin-bottom: 10px;">
+                <button id="btn-save" class="btn-small" onclick="saveSettings()">💾 SAVE SETTINGS</button>
+                <button id="btn-reset" class="btn-small" onclick="resetSettings()">🔄 RESET DEFAULTS</button>
             </div>
         </div>
 
@@ -113,6 +128,47 @@
     </div>
 
     <script>
+        // 💡 เพิ่ม tca และ tck เข้าไปใน Default Settings
+        const defaultSettings = {
+            'bg': '#f59600', 'ht': '#ffffff', 'tba': '#ffffff', 'tta': '#000000',
+            'tbd': '#222222', 'ttd': '#7a7a7a', 'tca': '#ffffff', 'tck': '#ff0000',
+            'hpa': '#2ecc71', 'hpk': '#ff0000', 'ebg': '#ccee00', 'etx': '#111111', 
+            'input-tourney-id': '', 'input-gif-duration': '4.0'
+        };
+
+        function loadSettings() {
+            for (let key in defaultSettings) {
+                if (localStorage.getItem('pubg_sb_' + key) !== null) {
+                    document.getElementById(key).value = localStorage.getItem('pubg_sb_' + key);
+                }
+            }
+            if (localStorage.getItem('pubg_sb_check-use-gif') !== null) {
+                document.getElementById('check-use-gif').checked = localStorage.getItem('pubg_sb_check-use-gif') === 'true';
+            }
+            updateLink();
+        }
+
+        function saveSettings() {
+            for (let key in defaultSettings) {
+                localStorage.setItem('pubg_sb_' + key, document.getElementById(key).value);
+            }
+            localStorage.setItem('pubg_sb_check-use-gif', document.getElementById('check-use-gif').checked);
+            alert("✅ Settings saved! These colors will load automatically next time.");
+        }
+
+        function resetSettings() {
+            if(!confirm("⚠️ Are you sure you want to reset all colors to default?")) return;
+            
+            for (let key in defaultSettings) {
+                document.getElementById(key).value = defaultSettings[key];
+                localStorage.removeItem('pubg_sb_' + key);
+            }
+            document.getElementById('check-use-gif').checked = true;
+            localStorage.removeItem('pubg_sb_check-use-gif');
+            
+            updateLink();
+        }
+
         function updateLink() {
             const tourney = document.getElementById('input-tourney-id').value.trim() || 'demo';
             const bg = document.getElementById('bg').value.replace('#', '');
@@ -121,6 +177,8 @@
             const tta = document.getElementById('tta').value.replace('#', '');
             const tbd = document.getElementById('tbd').value.replace('#', '');
             const ttd = document.getElementById('ttd').value.replace('#', '');
+            const tca = document.getElementById('tca').value.replace('#', ''); // 💡 ส่งค่าสีขีด Alive
+            const tck = document.getElementById('tck').value.replace('#', ''); // 💡 ส่งค่าสีขีด Knocked
             const hpa = document.getElementById('hpa').value.replace('#', '');
             const hpk = document.getElementById('hpk').value.replace('#', '');
             const ebg = document.getElementById('ebg').value.replace('#', '');
@@ -132,12 +190,10 @@
             if (currentUrl.endsWith('index.html')) currentUrl = currentUrl.replace('index.html', '');
             if (!currentUrl.endsWith('/')) currentUrl += '/';
             
-            const params = `bg=${bg}&ht=${ht}&tba=${tba}&tta=${tta}&tbd=${tbd}&ttd=${ttd}&hpa=${hpa}&hpk=${hpk}&ebg=${ebg}&etx=${etx}&gif=${gif}&dur=${dur}`;
+            // 💡 เพิ่ม tca และ tck ลงใน URL Parameter
+            const params = `bg=${bg}&ht=${ht}&tba=${tba}&tta=${tta}&tbd=${tbd}&ttd=${ttd}&tca=${tca}&tck=${tck}&hpa=${hpa}&hpk=${hpk}&ebg=${ebg}&etx=${etx}&gif=${gif}&dur=${dur}`;
             
-            // ลิงก์จริง
             document.getElementById('generated-url').value = `${currentUrl}overlay.html?tourney=${tourney}&${params}`;
-            
-            // 💡 ลิงก์ทดสอบ (ใส่พารามิเตอร์ demo=true)
             document.getElementById('demo-url').value = `${currentUrl}overlay.html?demo=true&${params}`;
         }
 
@@ -167,7 +223,8 @@
             window.open(url, '_blank');
         }
 
-        updateLink();
+        window.onload = loadSettings;
+
     </script>
 </body>
 </html>
