@@ -31,13 +31,13 @@
 
         body { margin: 0; padding: 20px; background-color: transparent; }
 
-        .scoreboard-container { display: flex; flex-direction: column; width: 260px; position: relative; border-radius: 0px !important; }
-        #scoreboard { display: flex; flex-direction: column; width: 100%; }
+        .scoreboard-container { display: flex; flex-direction: column; width: 260px; position: relative; border-radius: 0px !important; overflow: visible; }
+        #scoreboard { display: flex; flex-direction: column; width: 100%; position: relative; overflow: visible; }
         
         .header-row { height: 28px; position: relative; z-index: 20; background-color: var(--c-header-bg); color: var(--c-header-text); border-radius: 0px !important; }
-        .row-grid { display: grid; grid-template-columns: 24px minmax(0, 1fr) 42px 30px 38px; align-items: center; box-sizing: border-box; padding: 0 4px; }
+        .row-grid { display: grid; grid-template-columns: 24px minmax(0, 1fr) 42px 30px 38px; align-items: center; box-sizing: border-box; padding: 0 4px; position: relative; z-index: 5; }
         
-        .team-wrapper { position: relative; transition: transform 0.6s cubic-bezier(0.22, 1, 0.36, 1); z-index: 1; }
+        .team-wrapper { position: relative; transition: transform 0.6s cubic-bezier(0.22, 1, 0.36, 1); z-index: 1; overflow: visible; }
         .team-wrapper.is-moving { z-index: 10; }
         .team-wrapper.hidden-top4 { display: none !important; }
 
@@ -50,23 +50,46 @@
 
         .team-row-inner .row-grid { height: 32px; }
         .team-row-inner.expanded .row-grid { border-bottom: 1px solid rgba(128, 128, 128, 0.3); margin-bottom: 5px; }
-        .team-row-inner.collapsed { max-height: 32px; padding-bottom: 0; }
-        .team-row-inner.expanded { max-height: 250px; padding-bottom: 8px; }
+        .team-row-inner.collapsed { max-height: 32px; padding-bottom: 0; overflow: hidden; }
+        .team-row-inner.expanded { max-height: 250px; padding-bottom: 8px; overflow: hidden; }
         
         .team-row-inner.first-place { border-bottom: 1px solid #bfbfbf; }
         .team-row-inner.normal-place { border-bottom: 1px solid #bfbfbf; }
         .team-row-inner.eliminated-team { background-color: var(--c-team-bg-dead) !important; color: var(--c-team-text-dead) !important; }
 
         @keyframes bluechip-glow { 
-            0% { filter: drop-shadow(2px 0px 2px rgba(0, 191, 255, 0.5)) brightness(1); } 
-            50% { filter: drop-shadow(4px 0px 8px rgba(0, 191, 255, 1)) brightness(1.25); } 
-            100% { filter: drop-shadow(2px 0px 2px rgba(0, 191, 255, 0.5)) brightness(1); } 
+            0% { filter: brightness(1); } 
+            50% { filter: brightness(1.2); } 
+            100% { filter: brightness(1); } 
         }
         
+        .blue-chip-panel {
+            position: absolute;
+            right: 0; 
+            top: 0;
+            width: 38px; 
+            height: 32px; 
+            background-color: #225b82; 
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 1; 
+            opacity: 0;
+            transform: translateX(0); 
+            pointer-events: none;
+            transition: transform 0.5s cubic-bezier(0.22, 1, 0.36, 1), opacity 0.3s ease;
+        }
+
+        .blue-chip-panel.active {
+            opacity: 1;
+            transform: translateX(38px); 
+            animation: bluechip-glow 1.5s infinite ease-in-out;
+        }
+
         .blue-chip-icon {
-            position: absolute; right: -30px; top: 0; width: 32px; height: 32px; 
-            object-fit: contain; object-position: left center;
-            z-index: 1; animation: bluechip-glow 1.5s infinite ease-in-out; display: none; 
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
         }
 
         .col-rank, .col-team, .col-alive, .col-pts, .col-kills { display: flex; align-items: center; height: 100%; line-height: 1; }
@@ -94,19 +117,17 @@
         .player-hp-bar { height: 10px; background-color: #444; border: 1px solid #000; position: relative; overflow: hidden; }
         .player-hp-fill { height: 100%; transition: width 0.5s ease-out, background-color 0.5s ease; }
 
-        .data-layer { position: relative; z-index: 2; width: 100%; }
-        .banner-layer { position: absolute; top: 0; left: 0; width: 100%; height: 100%; z-index: 10; pointer-events: none; }
+        .data-layer { position: relative; z-index: 5; width: 100%; background-color: inherit; }
+        .banner-layer { position: absolute; top: 0; left: 0; width: 100%; height: 100%; z-index: 10; pointer-events: none; overflow: hidden;}
 
-        /* 💡 แก้ไข: แอนิเมชันสไลด์เข้า -> ค้าง 1 วิ -> สไลด์ออก */
         @keyframes slide-pause-out-banner { 
             0% { transform: translateX(-105%); opacity: 1; } 
-            15% { transform: translateX(0); opacity: 1; }      /* เลื่อนเข้าไวปกติ */
-            75% { transform: translateX(0); opacity: 1; }      /* ค้างไว้ที่เดิม (ประมาณ 1 วินาที) */
-            95% { transform: translateX(105%); opacity: 1; }    /* เลื่อนออกไวปกติ */
+            15% { transform: translateX(0); opacity: 1; } 
+            75% { transform: translateX(0); opacity: 1; } 
+            95% { transform: translateX(105%); opacity: 1; } 
             100% { transform: translateX(105%); opacity: 0; } 
         }
 
-        /* สำหรับ GIF Mode (ถ้าความยาว GIF สั้น ป้ายจะสไลด์ออกตามเวลาที่ตั้งไว้) */
         @keyframes slide-in-pause-out-gif { 
             0% { transform: translateX(-105%); opacity: 1; } 
             15% { transform: translateX(0); opacity: 1; } 
@@ -139,6 +160,15 @@
         
         @keyframes bluezone-pulse { 0% { background-color: rgba(0, 150, 255, 0.2); } 50% { background-color: rgba(0, 150, 255, 0.6); } 100% { background-color: rgba(0, 150, 255, 0.2); } }
         .team-row-inner.in-bluezone::before { content: ''; position: absolute; top: 0; left: 0; width: 100%; height: 32px; animation: bluezone-pulse 1.5s infinite; z-index: 1; pointer-events: none; }
+
+        @keyframes pulse-knocked {
+            0% { opacity: 1; }
+            50% { opacity: 0.3; }
+            100% { opacity: 1; }
+        }
+        .knocked-pulse {
+            animation: pulse-knocked 1.5s infinite ease-in-out;
+        }
         
         #error-msg { color: #f59600; font-size: 14px; background: #222; padding: 15px; border: 1px solid #f59600; display: none; }
         #demo-badge { position: absolute; top: -15px; left: 0; background: #2ecc71; color: #111; padding: 2px 8px; font-size: 12px; font-weight: bold !important; border-radius: 4px; display: none; z-index: 100; }
@@ -176,6 +206,14 @@
         let top4EntryTime = 0; 
         let latestData = null;
         let previousAliveCount = 0; 
+        
+        let matchEndTime = 0;
+
+        function isRecallingNow(val) {
+            if (val === undefined || val === null) return false;
+            const str = String(val).toLowerCase().trim();
+            return str === 'true' || str === '1' || str === 'recalling' || str === 'active' || str === 'yes' || str === 'y';
+        }
 
         function runDemoSimulator() {
             let demoStep = 0;
@@ -197,78 +235,67 @@
 
             function simulateStep() {
                 d.data.teams.forEach(t => {
+                    t.bluechip_state = 'normal';
                     t.is_recalling = false;
-                    t.players.forEach(p => p.isRecalling = false);
                 });
+
+                const sortedTeams = [...d.data.teams].sort((a, b) => b.total_pts_with_penalty - a.total_pts_with_penalty);
+                const getTeamByRank = (rank) => sortedTeams[rank - 1];
+                const killTeam = (team) => { if(team) team.players.forEach(p => { p.isAlive = false; p.health = 0; }); };
 
                 if (demoStep === 0) {
                     initDemoData(); 
                 }
-                else {
-                    d.data.teams.forEach(t => {
-                        let isAlive = t.players.some(p => p.isAlive);
-                        if (isAlive && Math.random() > 0.5) {
-                            let points = Math.floor(Math.random() * 3) + 1;
-                            t.match_kills += points;
-                            t.total_pts_with_penalty += points;
-                        }
-                    });
-
-                    d.data.teams.sort((a, b) => b.total_pts_with_penalty - a.total_pts_with_penalty);
-                    d.data.teams.forEach((t, i) => t.total_pts_rank = i + 1);
-
-                    const getTeam = (name) => d.data.teams.find(t => t.team_name === name);
-
-                    if (demoStep === 1) {
-                        let t1 = getTeam("TTB");
-                        if(t1) { t1.players[1].health = 20; t1.players[1].isGroggy = true; }
-                    }
-                    else if (demoStep === 2) {
-                        let r1 = getTeam("R1");
-                        if(r1) { 
-                            r1.players[2].isAlive = false; r1.players[3].isAlive = false; 
-                            r1.is_recalling = true; 
-                        }
-                        let baby = getTeam("BABY");
-                        if(baby) baby.players.forEach(p => p.isAlive = false);
-                    }
-                    else if (demoStep === 3) {
-                        let r1 = getTeam("R1");
-                        if(r1) { r1.players[2].isAlive = true; r1.players[3].isAlive = true; }
-                        
-                        let sv = getTeam("SV");
-                        let why = getTeam("WHY");
-                        if(sv) { sv.players.forEach(p => p.isAlive = false); sv.is_recalling = true; }
-                        if(why) { why.players.forEach(p => p.isAlive = false); why.is_recalling = true; }
-                    }
-                    else if (demoStep === 4) {
-                        let sv = getTeam("SV");
-                        let why = getTeam("WHY");
-                        if(sv) sv.players[0].isAlive = true;
-                        if(why) why.players[0].isAlive = true;
-                    }
-                    else if (demoStep === 5) {
-                        d.data.teams.forEach(t => {
-                            if(t.total_pts_rank > 4) t.players.forEach(p => p.isAlive = false);
-                        });
-                        let ttb = getTeam("TTB");
-                        if(ttb) ttb.is_recalling = true; 
-                    }
-                    else if (demoStep === 6) {
-                        let rank4Team = d.data.teams.find(t => t.total_pts_rank === 4);
-                        if (rank4Team) {
-                            rank4Team.players.forEach(p => p.isAlive = false);
-                        }
+                else if (demoStep === 1) {
+                    let t8 = getTeamByRank(8);
+                    if (t8) {
+                        t8.players[3].isAlive = false; 
+                        t8.bluechip_state = 'recalling'; 
                     }
                 }
+                else if (demoStep === 2) {
+                    let t8 = getTeamByRank(8);
+                    if (t8) t8.players[3].isAlive = true;
+                    killTeam(getTeamByRank(16)); killTeam(getTeamByRank(15));
+                }
+                else if (demoStep === 3) {
+                    killTeam(getTeamByRank(14)); killTeam(getTeamByRank(13)); killTeam(getTeamByRank(12));
+                }
+                else if (demoStep === 4) {
+                    for(let r = 11; r >= 5; r--) killTeam(getTeamByRank(r));
+                }
+                else if (demoStep === 5) {
+                    let t4 = getTeamByRank(4);
+                    if (t4) t4.players[0].isGroggy = true;
+                }
+                else if (demoStep === 6) {
+                    killTeam(getTeamByRank(4)); 
+                }
+                else if (demoStep === 7) {
+                    killTeam(getTeamByRank(3)); 
+                }
+                else if (demoStep === 8) {
+                    killTeam(getTeamByRank(2)); 
+                }
+
+                d.data.teams.forEach(t => {
+                    if (t.players.some(p => p.isAlive) && demoStep < 8) {
+                        let pts = Math.floor(Math.random() * 3);
+                        t.match_kills += pts;
+                        t.total_pts_with_penalty += pts;
+                    }
+                });
+
+                d.data.teams.sort((a, b) => b.total_pts_with_penalty - a.total_pts_with_penalty);
+                d.data.teams.forEach((t, i) => t.total_pts_rank = i + 1);
 
                 renderScoreboard(d);
                 demoStep++;
-                if (demoStep > 7) demoStep = 0; 
+                if (demoStep > 11) demoStep = 0; 
             }
 
             simulateStep(); 
-            setInterval(simulateStep, 8000); 
+            setInterval(simulateStep, 6000); 
         }
 
         function renderScoreboard(data) {
@@ -282,6 +309,11 @@
             }
             previousAliveCount = totalAlivePlayers;
 
+            if (isMatchReset) {
+                matchEndTime = 0;
+                top4EntryTime = 0;
+            }
+
             const scoreboard = document.getElementById('scoreboard');
             const oldPositions = {};
             scoreboard.querySelectorAll('.team-wrapper').forEach(row => { oldPositions[row.id] = row.getBoundingClientRect().top; });
@@ -291,6 +323,16 @@
             const aliveTeamsCount = aliveTeams.length;
             const isMatchEnded = aliveTeamsCount <= 1; 
 
+            if (isMatchEnded) {
+                if (matchEndTime === 0 && !isMatchReset) {
+                    matchEndTime = Date.now();
+                    setTimeout(() => { if (latestData) renderScoreboard(latestData); }, 6500); 
+                }
+            } else {
+                matchEndTime = 0;
+            }
+
+            const showFinalStandings = (isMatchEnded && matchEndTime !== 0 && (Date.now() - matchEndTime >= 6000));
             const elimDurationMs = gifDuration * 1000;
 
             if (aliveTeamsCount <= 4 && !isMatchEnded) {
@@ -298,15 +340,13 @@
                     top4EntryTime = Date.now();
                     setTimeout(() => { if (latestData) renderScoreboard(latestData); }, elimDurationMs + 100); 
                 }
-            } else {
-                top4EntryTime = 0; 
             }
 
-            const isTop4Period = !isMatchEnded && aliveTeamsCount <= 4 && (isMatchReset || (Date.now() - top4EntryTime >= elimDurationMs));
+            const isTop4Period = !isMatchEnded && !showFinalStandings && aliveTeamsCount <= 4 && (isMatchReset || (Date.now() - top4EntryTime >= elimDurationMs));
 
             if (isTop4Period && top4Teams.length === 0) {
                 top4Teams = aliveTeams.map(t => t.team_name);
-            } else if (!isTop4Period) {
+            } else if (!isTop4Period && !isMatchEnded) {
                 top4Teams = []; 
             }
 
@@ -320,7 +360,9 @@
                     wrapperRow.className = 'team-wrapper';
                     
                     wrapperRow.innerHTML = `
-                        <img class="blue-chip-icon" src="./Blue Chip.png" alt="Blue Chip">
+                        <div class="blue-chip-panel">
+                            <img class="blue-chip-icon" src="./BlueChip.png" alt="Blue Chip">
+                        </div>
                         <div class="team-row-inner">
                             <div class="banner-layer"></div>
                             <div class="data-layer">
@@ -338,59 +380,94 @@
                 let teamIsAlive = false, teamInBlueZone = false, revivedPlayersQueue = [];
                 let dotsHtml = '', playerDetailsHtml = '', teamIsRecalling = false; 
 
-                // 💡 แก้ไขเฉพาะตรงนี้ให้รับค่าตัวเลข หรือ string จาก API ได้หลากหลายขึ้น
-                if (team.isRecalling || team.is_recalling || team.bluechip_state === 'recalling') teamIsRecalling = true;
+                if (isRecallingNow(team.isRecalling) || isRecallingNow(team.is_recalling) || isRecallingNow(team.bluechip_state) || isRecallingNow(team.recall_state)) {
+                    teamIsRecalling = true;
+                }
+
+                let staticPlayersForTop4 = team.players ? [...team.players].sort((a, b) => (a.name || '').localeCompare(b.name || '')) : [];
 
                 for (let i = 0; i < 4; i++) {
-                    const p = team.players ? team.players[i] : null;
-                    let isAlive = false, hp = 0, isKnocked = false, pName = '';
+                    const pTick = team.players ? team.players[i] : null;
+                    let isAliveTick = false, hpTick = 0, isKnockedTick = false, pNameTick = '';
 
-                    if (p) {
-                        isAlive = p.isAlive; hp = p.health !== undefined ? p.health : 100;
-                        isKnocked = p.isGroggy; 
+                    if (pTick) {
+                        isAliveTick = pTick.isAlive; hpTick = pTick.health !== undefined ? pTick.health : 100;
+                        isKnockedTick = pTick.isGroggy; 
                         
-                        let rawName = p.name || '';
-                        let safeTeamName = team.team_name.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-                        let prefixRegex = new RegExp('^' + safeTeamName + '[_\\-\\s]?', 'i');
-                        pName = rawName.replace(prefixRegex, '');
+                        let rawNameTick = pTick.name || '';
+                        let safeTeamNameTick = team.team_name.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+                        let prefixRegexTick = new RegExp('^' + safeTeamNameTick + '[_\\-\\s]?', 'i');
+                        pNameTick = rawNameTick.replace(prefixRegexTick, '');
 
-                        if (isAlive) { teamIsAlive = true; if (p.isInBlueZone) teamInBlueZone = true; }
+                        if (isAliveTick) { teamIsAlive = true; if (pTick.isInBlueZone) teamInBlueZone = true; }
                         
                         if (!isMatchReset) {
-                            if (playerStates[rawName] === false && isAlive === true) {
-                                revivedPlayersQueue.push(pName);
+                            if (playerStates[rawNameTick] === false && isAliveTick === true) {
+                                revivedPlayersQueue.push(pNameTick);
                             }
                         }
-                        playerStates[rawName] = isAlive; 
+                        playerStates[rawNameTick] = isAliveTick; 
                         
-                        // 💡 แก้ไขเฉพาะตรงนี้เหมือนกัน เพื่อให้จับสถานะฝั่ง Live API ได้
-                        if (p.isRecalling || p.is_recalling || p.isReviving || p.is_reviving || p.bluechip_state === 'recalling') teamIsRecalling = true;
+                        if (isRecallingNow(pTick.isRecalling) || isRecallingNow(pTick.is_recalling) || isRecallingNow(pTick.isReviving) || isRecallingNow(pTick.is_reviving) || isRecallingNow(pTick.bluechip_state)) {
+                            teamIsRecalling = true;
+                        }
                     }
 
-                    const colorSmall = isKnocked ? 'var(--c-tick-knocked)' : (isAlive ? 'var(--c-tick-alive)' : 'transparent');
-                    const colorLarge = isKnocked ? 'var(--c-hp-knocked)' : (isAlive ? 'var(--c-hp-alive)' : 'transparent');
-                    const smallHeight = isKnocked ? 100 : (isAlive ? hp : 0);
-                    const largeWidth = isKnocked ? 100 : (isAlive ? hp : 0);
+                    // 💡 แก้ไขบัคไฟแดงค้าง: ถ้า isAliveTick เป็น false ให้บังคับโปร่งใสเสมอ
+                    const colorSmall = isAliveTick ? (isKnockedTick ? 'var(--c-tick-knocked)' : 'var(--c-tick-alive)') : 'transparent';
+                    const smallHeight = isAliveTick ? (isKnockedTick ? 100 : hpTick) : 0;
+                    const pulseClassSmall = (isAliveTick && isKnockedTick) ? 'knocked-pulse' : '';
+
+                    const pDet = staticPlayersForTop4[i] ? staticPlayersForTop4[i] : null;
+                    let isAliveDet = false, hpDet = 0, isKnockedDet = false, pNameDet = '';
+
+                    if (pDet) {
+                        isAliveDet = pDet.isAlive; hpDet = pDet.health !== undefined ? pDet.health : 100;
+                        isKnockedDet = pDet.isGroggy; 
+                        
+                        let rawNameDet = pDet.name || '';
+                        let safeTeamNameDet = team.team_name.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+                        let prefixRegexDet = new RegExp('^' + safeTeamNameDet + '[_\\-\\s]?', 'i');
+                        pNameDet = rawNameDet.replace(prefixRegexDet, '');
+                    }
+
+                    // 💡 แก้ไขบัคไฟแดงค้าง: ถ้า isAliveDet เป็น false ให้บังคับโปร่งใสเสมอ
+                    const colorLarge = isAliveDet ? (isKnockedDet ? 'var(--c-hp-knocked)' : 'var(--c-hp-alive)') : 'transparent';
+                    const largeWidth = isAliveDet ? (isKnockedDet ? 100 : hpDet) : 0;
+                    const pulseClassLarge = (isAliveDet && isKnockedDet) ? 'knocked-pulse' : '';
 
                     if (isNewRow) {
-                        dotsHtml += `<div class="alive-bar"><div class="hp-fill-small" style="height: ${smallHeight}%; background-color: ${colorSmall};"></div></div>`;
-                        playerDetailsHtml += `<div class="player-item"><div class="player-name ${isAlive ? '' : 'dead'}">${pName}</div><div class="player-hp-bar"><div class="player-hp-fill" style="width: ${largeWidth}%; background-color: ${colorLarge};"></div></div></div>`;
+                        dotsHtml += `<div class="alive-bar"><div class="hp-fill-small ${pulseClassSmall}" style="height: ${smallHeight}%; background-color: ${colorSmall};"></div></div>`;
+                        playerDetailsHtml += `<div class="player-item"><div class="player-name ${isAliveDet ? '' : 'dead'}">${pNameDet}</div><div class="player-hp-bar"><div class="player-hp-fill ${pulseClassLarge}" style="width: ${largeWidth}%; background-color: ${colorLarge};"></div></div></div>`;
                     } else {
                         const smallFills = innerRow.querySelectorAll('.hp-fill-small'), largeFills = innerRow.querySelectorAll('.player-hp-fill'), nameDivs = innerRow.querySelectorAll('.player-name');
-                        if (smallFills[i]) { smallFills[i].style.height = `${smallHeight}%`; smallFills[i].style.backgroundColor = colorSmall; }
-                        if (largeFills[i]) { largeFills[i].style.width = `${largeWidth}%`; largeFills[i].style.backgroundColor = colorLarge; }
+                        if (smallFills[i]) { 
+                            smallFills[i].style.height = `${smallHeight}%`; 
+                            smallFills[i].style.backgroundColor = colorSmall; 
+                            (isAliveTick && isKnockedTick) ? smallFills[i].classList.add('knocked-pulse') : smallFills[i].classList.remove('knocked-pulse');
+                        }
+                        if (largeFills[i]) { 
+                            largeFills[i].style.width = `${largeWidth}%`; 
+                            largeFills[i].style.backgroundColor = colorLarge; 
+                            (isAliveDet && isKnockedDet) ? largeFills[i].classList.add('knocked-pulse') : largeFills[i].classList.remove('knocked-pulse');
+                        }
                         if (nameDivs[i]) {
-                            if (isAlive) nameDivs[i].classList.remove('dead'); else nameDivs[i].classList.add('dead');
-                            if (pName) nameDivs[i].innerText = pName;
+                            if (isAliveDet) nameDivs[i].classList.remove('dead'); else nameDivs[i].classList.add('dead');
+                            if (pNameDet) nameDivs[i].innerText = pNameDet;
                         }
                     }
                 }
 
-                if (isTop4Period) teamIsRecalling = false; 
                 if (!teamIsAlive) teamIsRecalling = false; 
                 
-                const blueChipIcon = wrapperRow.querySelector('.blue-chip-icon');
-                if (blueChipIcon) blueChipIcon.style.display = teamIsRecalling ? 'block' : 'none';
+                const blueChipPanel = wrapperRow.querySelector('.blue-chip-panel');
+                if (blueChipPanel) {
+                    if (teamIsRecalling) {
+                        blueChipPanel.classList.add('active');
+                    } else {
+                        blueChipPanel.classList.remove('active');
+                    }
+                }
 
                 if (isMatchReset && !teamIsAlive) {
                     currentTeamsEliminated[team.team_name] = true;
@@ -440,8 +517,15 @@
                 const timeSinceDeath = Date.now() - (teamEliminatedTime[team.team_name] || 0);
                 const dynamicSlideOutMs = elimDurationMs * 0.8;
 
-                if (isMatchEnded) {
+                if (showFinalStandings) {
                     expansionClass = 'collapsed';
+                    visibilityClass = ''; 
+                } else if (isMatchEnded) {
+                    if (top4Teams.includes(team.team_name) || top4Teams.length === 0) {
+                        expansionClass = teamIsAlive ? 'expanded' : 'collapsed';
+                    } else {
+                        visibilityClass = 'hidden-top4';
+                    }
                 } else if (isTop4Period) {
                     if (top4Teams.includes(team.team_name)) {
                         if (teamIsAlive) {
@@ -550,7 +634,7 @@
             } else {
                 API_URL = `https://domestic.atum.live/api/pubg/liveleaderboard?account_id=nttapon7799&series=${tourneyId}&tournament_id=${tourneyId}&mode=post&all_teams=true`;
                 fetchRealTimeData();
-                setInterval(fetchRealTimeData, 1500); 
+                setInterval(fetchRealTimeData, 1000); 
             }
         }
     </script>
