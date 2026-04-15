@@ -6,6 +6,7 @@
     <title>PUBG Scoreboard - Advanced OBS Overlay</title>
     <style>
         :root {
+            /* สีพื้นฐาน (รับค่าจาก URL ได้) */
             --c-header-bg: #f59600; --c-header-text: #ffffff;
             --c-team-bg-alive: #ffffff; --c-team-text-alive: #000000;
             --c-team-bg-dead: #222222; --c-team-text-dead: #7a7a7a;
@@ -46,10 +47,8 @@
             transition: max-height 0.4s ease, opacity 0.4s ease;
             z-index: 2; color: var(--c-team-text-alive);
             border-radius: 0px !important;
-            /* 💡 ถอด overflow: hidden ออกชั่วคราวเพื่อให้ Bluechip ไม่โดนตัด */
         }
 
-        /* 💡 สร้าง Layer สำหรับพื้นหลังแยกต่างหาก เพื่อไม่ให้ทับกับแสง Bluezone */
         .bg-layer {
             position: absolute; top: 0; left: 0; width: 100%; height: 100%; z-index: 0;
             background-color: var(--c-team-bg-alive);
@@ -64,7 +63,6 @@
         .team-row-inner.first-place { border-bottom: 1px solid #bfbfbf; }
         .team-row-inner.normal-place { border-bottom: 1px solid #bfbfbf; }
         
-        /* 💡 เปลี่ยนเป้าหมายการใส่สีตายไปที่ bg-layer */
         .team-row-inner.eliminated-team .bg-layer { background-color: var(--c-team-bg-dead) !important; }
         .team-row-inner.eliminated-team { color: var(--c-team-text-dead) !important; }
 
@@ -84,7 +82,7 @@
             display: flex;
             align-items: center;
             justify-content: center;
-            z-index: 10; /* 💡 ดันมาหน้าสุด เพื่อไม่ให้โดนอะไรบัง */
+            z-index: 10;
             opacity: 0;
             transform: translateX(0); 
             pointer-events: none;
@@ -128,7 +126,7 @@
         .player-hp-bar { height: 10px; background-color: #444; border: 1px solid #000; position: relative; overflow: hidden; }
         .player-hp-fill { height: 100%; transition: width 0.5s ease-out, background-color 0.5s ease; }
 
-        .data-layer { position: relative; z-index: 5; width: 100%; background-color: transparent; } /* 💡 เอาสีพื้นหลังออก */
+        .data-layer { position: relative; z-index: 5; width: 100%; }
         .banner-layer { position: absolute; top: 0; left: 0; width: 100%; height: 100%; z-index: 10; pointer-events: none; overflow: hidden;}
 
         @keyframes slide-pause-out-banner { 
@@ -170,15 +168,7 @@
         }
         
         @keyframes bluezone-pulse { 0% { background-color: rgba(0, 150, 255, 0); } 50% { background-color: rgba(0, 150, 255, 0.4); } 100% { background-color: rgba(0, 150, 255, 0); } }
-        /* 💡 ย้าย Bluezone Pulse มาซ้อนทับ bg-layer */
-        .team-row-inner.in-bluezone .bg-layer::after { 
-            content: ''; 
-            position: absolute; 
-            top: 0; left: 0; right: 0; bottom: 0; 
-            animation: bluezone-pulse 1.5s infinite; 
-            z-index: 1;
-            pointer-events: none; 
-        }
+        .team-row-inner.in-bluezone .bg-layer::after { content: ''; position: absolute; top: 0; left: 0; right: 0; height: 32px; animation: bluezone-pulse 1.5s infinite; z-index: 1; pointer-events: none; }
 
         @keyframes pulse-knocked {
             0% { opacity: 1; }
@@ -226,10 +216,16 @@
         let latestData = null;
         let previousAliveCount = 0; 
         
+        // 💡 ตัวแปรเก็บสถานะการชุบบลูชิป (State Tracking)
+        let teamBluechipCounts = {};
+        let activeRecalls = {};
+
         let matchEndTime = 0;
 
         function isRecallingNow(val) {
             if (val === undefined || val === null) return false;
+            if (typeof val === 'boolean') return val;
+            if (typeof val === 'number') return val > 0;
             const str = String(val).toLowerCase().trim();
             return str === 'true' || str === '1' || str === 'recalling' || str === 'active' || str === 'yes' || str === 'y';
         }
@@ -245,20 +241,14 @@
                     d.data.teams.push({
                         team_name: demoTeams[i], total_pts_rank: i + 1, total_pts_with_penalty: 160 - (i*5), match_kills: Math.floor(Math.random() * 5),
                         players: [1,2,3,4].map(n => ({ name: demoTeams[i]+"_P"+n, isAlive: true, health: 100, isGroggy: false, isInBlueZone: false })),
-                        is_recalling: false, bluechip_state: 'normal'
+                        useBluechipCount: 0,
+                        is_recalling: false
                     });
                 }
             }
-
             initDemoData();
 
             function simulateStep() {
-                d.data.teams.forEach(t => {
-                    t.bluechip_state = 'normal';
-                    t.is_recalling = false;
-                    t.players.forEach(p => { p.isRecalling = false; p.isInBlueZone = false; });
-                });
-
                 const sortedTeams = [...d.data.teams].sort((a, b) => b.total_pts_with_penalty - a.total_pts_with_penalty);
                 const getTeamByRank = (rank) => sortedTeams[rank - 1];
                 const killTeam = (team) => { if(team) team.players.forEach(p => { p.isAlive = false; p.health = 0; }); };
@@ -270,40 +260,25 @@
                     let t8 = getTeamByRank(8);
                     if (t8) {
                         t8.players[3].isAlive = false; 
-                        t8.bluechip_state = 'recalling'; 
+                        t8.useBluechipCount = 1; // 💡 เริ่มใช้เครื่องชุบ
                     }
                 }
                 else if (demoStep === 2) {
                     let t8 = getTeamByRank(8);
-                    if (t8) t8.players[3].isAlive = true;
-                    killTeam(getTeamByRank(16)); killTeam(getTeamByRank(15));
-                }
-                else if (demoStep === 3) {
-                    killTeam(getTeamByRank(14)); killTeam(getTeamByRank(13)); killTeam(getTeamByRank(12));
-                }
-                else if (demoStep === 4) {
-                    for(let r = 11; r >= 5; r--) killTeam(getTeamByRank(r));
-                }
-                else if (demoStep === 5) {
-                    let t4 = getTeamByRank(4);
-                    if (t4) {
-                        t4.players[0].isGroggy = true;
-                        t4.players.forEach(p => p.isInBlueZone = true);
+                    if (t8) {
+                        t8.players[3].isAlive = true; // 💡 เกิดใหม่ (ป้ายบลูชิปต้องพับ)
                     }
                 }
-                else if (demoStep === 6) {
-                    killTeam(getTeamByRank(4)); 
+                else if (demoStep === 3) {
+                    killTeam(getTeamByRank(16)); killTeam(getTeamByRank(15));
                 }
-                else if (demoStep === 7) {
-                    killTeam(getTeamByRank(3)); 
+                else if (demoStep === 4) {
+                    killTeam(getTeamByRank(14)); killTeam(getTeamByRank(13));
                 }
-                else if (demoStep === 8) {
-                    killTeam(getTeamByRank(2)); 
-                }
-
+                
                 d.data.teams.forEach(t => {
-                    if (t.players.some(p => p.isAlive) && demoStep < 8) {
-                        let pts = Math.floor(Math.random() * 3);
+                    if (t.players.some(p => p.isAlive)) {
+                        let pts = Math.floor(Math.random() * 2);
                         t.match_kills += pts;
                         t.total_pts_with_penalty += pts;
                     }
@@ -313,8 +288,7 @@
                 d.data.teams.forEach((t, i) => t.total_pts_rank = i + 1);
 
                 renderScoreboard(d);
-                demoStep++;
-                if (demoStep > 11) demoStep = 0; 
+                demoStep = (demoStep + 1) % 10;
             }
 
             simulateStep(); 
@@ -335,6 +309,8 @@
             if (isMatchReset) {
                 matchEndTime = 0;
                 top4EntryTime = 0;
+                teamBluechipCounts = {};
+                activeRecalls = {};
             }
 
             const scoreboard = document.getElementById('scoreboard');
@@ -375,156 +351,121 @@
 
             sortedTeams.forEach((team, index) => {
                 let wrapperRow = document.getElementById(`team-${team.team_name}`);
-                let isNewRow = false;
-
                 if (!wrapperRow) {
                     wrapperRow = document.createElement('div');
                     wrapperRow.id = `team-${team.team_name}`;
                     wrapperRow.className = 'team-wrapper';
-                    
                     wrapperRow.innerHTML = `
-                        <div class="blue-chip-panel">
-                            <img class="blue-chip-icon" src="./BLUECHIP.png" alt="Blue Chip">
-                        </div>
+                        <div class="blue-chip-panel"><img class="blue-chip-icon" src="./BLUECHIP.png"></div>
                         <div class="team-row-inner">
                             <div class="bg-layer"></div>
                             <div class="banner-layer"></div>
-                            <div class="data-layer">
-                                <div class="row-grid-wrapper"></div>
-                            </div>
-                        </div>
-                    `;
+                            <div class="data-layer"><div class="row-grid-wrapper"></div></div>
+                        </div>`;
                     scoreboard.appendChild(wrapperRow);
-                    isNewRow = true;
                 }
                 
                 wrapperRow.style.order = index; 
                 let innerRow = wrapperRow.querySelector('.team-row-inner');
 
                 let teamIsAlive = false, teamInBlueZone = false, revivedPlayersQueue = [];
-                let dotsHtml = '', playerDetailsHtml = '', teamIsRecalling = false; 
+                let dotsHtml = '', playerDetailsHtml = ''; 
 
-                if (isRecallingNow(team.isRecalling) || isRecallingNow(team.is_recalling) || isRecallingNow(team.bluechip_state) || isRecallingNow(team.recall_state)) {
-                    teamIsRecalling = true;
-                }
-
-                let staticPlayersForTop4 = team.players ? [...team.players].sort((a, b) => (a.name || '').localeCompare(b.name || '')) : [];
-
-                for (let i = 0; i < 4; i++) {
-                    const pTick = team.players ? team.players[i] : null;
-                    let isAliveTick = false, hpTick = 0, isKnockedTick = false, pNameTick = '';
-
-                    if (pTick) {
-                        isAliveTick = pTick.isAlive; hpTick = pTick.health !== undefined ? pTick.health : 100;
-                        isKnockedTick = pTick.isGroggy; 
-                        
-                        let rawNameTick = pTick.name || '';
-                        let safeTeamNameTick = team.team_name.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-                        let prefixRegexTick = new RegExp('^' + safeTeamNameTick + '[_\\-\\s]?', 'i');
-                        pNameTick = rawNameTick.replace(prefixRegexTick, '');
-
-                        if (isAliveTick) { 
-                            teamIsAlive = true; 
-                            if (pTick.isInBlueZone === true || pTick.is_in_bluezone === true || pTick.in_bluezone === true || pTick.inBlueZone === true) {
-                                teamInBlueZone = true; 
-                            }
-                        }
-                        
-                        if (!isMatchReset) {
-                            if (playerStates[rawNameTick] === false && isAliveTick === true) {
-                                revivedPlayersQueue.push(pNameTick);
-                            }
-                        }
-                        playerStates[rawNameTick] = isAliveTick; 
-                        
-                        if (isRecallingNow(pTick.isRecalling) || isRecallingNow(pTick.is_recalling) || isRecallingNow(pTick.isReviving) || isRecallingNow(pTick.is_reviving) || isRecallingNow(pTick.bluechip_state)) {
-                            teamIsRecalling = true;
-                        }
-                    }
-
-                    const colorSmall = isAliveTick ? (isKnockedTick ? 'var(--c-tick-knocked)' : 'var(--c-tick-alive)') : 'transparent';
-                    const smallHeight = isAliveTick ? (isKnockedTick ? 100 : hpTick) : 0;
-                    const pulseClassSmall = (isAliveTick && isKnockedTick) ? 'knocked-pulse' : '';
-
-                    const pDet = staticPlayersForTop4[i] ? staticPlayersForTop4[i] : null;
-                    let isAliveDet = false, hpDet = 0, isKnockedDet = false, pNameDet = '';
-
-                    if (pDet) {
-                        isAliveDet = pDet.isAlive; hpDet = pDet.health !== undefined ? pDet.health : 100;
-                        isKnockedDet = pDet.isGroggy; 
-                        
-                        let rawNameDet = pDet.name || '';
-                        let safeTeamNameDet = team.team_name.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-                        let prefixRegexDet = new RegExp('^' + safeTeamNameDet + '[_\\-\\s]?', 'i');
-                        pNameDet = rawNameDet.replace(prefixRegexDet, '');
-                    }
-
-                    const colorLarge = isAliveDet ? (isKnockedDet ? 'var(--c-hp-knocked)' : 'var(--c-hp-alive)') : 'transparent';
-                    const largeWidth = isAliveDet ? (isKnockedDet ? 100 : hpDet) : 0;
-                    const pulseClassLarge = (isAliveDet && isKnockedDet) ? 'knocked-pulse' : '';
-
-                    if (isNewRow) {
-                        dotsHtml += `<div class="alive-bar"><div class="hp-fill-small ${pulseClassSmall}" style="height: ${smallHeight}%; background-color: ${colorSmall};"></div></div>`;
-                        playerDetailsHtml += `<div class="player-item"><div class="player-name ${isAliveDet ? '' : 'dead'}">${pNameDet}</div><div class="player-hp-bar"><div class="player-hp-fill ${pulseClassLarge}" style="width: ${largeWidth}%; background-color: ${colorLarge};"></div></div></div>`;
-                    } else {
-                        const smallFills = innerRow.querySelectorAll('.hp-fill-small'), largeFills = innerRow.querySelectorAll('.player-hp-fill'), nameDivs = innerRow.querySelectorAll('.player-name');
-                        if (smallFills[i]) { 
-                            smallFills[i].style.height = `${smallHeight}%`; 
-                            smallFills[i].style.backgroundColor = colorSmall; 
-                            (isAliveTick && isKnockedTick) ? smallFills[i].classList.add('knocked-pulse') : smallFills[i].classList.remove('knocked-pulse');
-                        }
-                        if (largeFills[i]) { 
-                            largeFills[i].style.width = `${largeWidth}%`; 
-                            largeFills[i].style.backgroundColor = colorLarge; 
-                            (isAliveDet && isKnockedDet) ? largeFills[i].classList.add('knocked-pulse') : largeFills[i].classList.remove('knocked-pulse');
-                        }
-                        if (nameDivs[i]) {
-                            if (isAliveDet) nameDivs[i].classList.remove('dead'); else nameDivs[i].classList.add('dead');
-                            if (pNameDet) nameDivs[i].innerText = pNameDet;
-                        }
-                    }
-                }
-
-                if (!teamIsAlive) teamIsRecalling = false; 
+                // 💡 [Smart Logic] ตรวจสอบการเพิ่มขึ้นของ useBluechipCount จาก API
+                let currentBluechipCount = team.useBluechipCount || 0;
+                let isApiRecalling = isRecallingNow(team.is_recalling) || isRecallingNow(team.isRecalling);
                 
-                const blueChipPanel = wrapperRow.querySelector('.blue-chip-panel');
-                if (blueChipPanel) {
-                    if (teamIsRecalling) {
-                        blueChipPanel.classList.add('active');
+                if (teamBluechipCounts[team.team_name] === undefined) {
+                    teamBluechipCounts[team.team_name] = currentBluechipCount;
+                }
+
+                // ถ้าตัวเลขเพิ่มขึ้น หรือ API บอกว่ากำลัง Recall ให้เปิดแจ้งเตือน
+                if (currentBluechipCount > teamBluechipCounts[team.team_name] || isApiRecalling) {
+                    activeRecalls[team.team_name] = true;
+                    teamBluechipCounts[team.team_name] = currentBluechipCount;
+                }
+
+                if (team.players) {
+                    let sortedForDots = [...team.players].sort((a, b) => {
+                        if (a.isAlive !== b.isAlive) return a.isAlive ? -1 : 1; 
+                        return (b.health || 0) - (a.health || 0); 
+                    });
+
+                    let sortedForTop4List = [...team.players].sort((a, b) => (a.name || '').localeCompare(b.name || ''));
+
+                    sortedForDots.forEach(p => {
+                        if (p.isAlive) { 
+                            teamIsAlive = true; 
+                            if (p.isInBlueZone || p.is_in_bluezone || p.in_bluezone || p.inBlueZone) teamInBlueZone = true; 
+                        }
+
+                        let rawName = p.name || '';
+                        let safeTeamName = team.team_name.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+                        let prefixRegex = new RegExp('^' + safeTeamName + '[_\\-\\s]?', 'i');
+                        let cleanName = rawName.replace(prefixRegex, '');
+
+                        if (!isMatchReset && playerStates[rawName] === false && p.isAlive === true) {
+                            revivedPlayersQueue.push(cleanName);
+                        }
+                        playerStates[rawName] = p.isAlive;
+
+                        const pulseS = (p.isAlive && p.isGroggy) ? 'knocked-pulse' : '';
+                        const colorS = p.isAlive ? (p.isGroggy ? 'var(--c-tick-knocked)' : 'var(--c-tick-alive)') : 'transparent';
+                        dotsHtml += `<div class="alive-bar"><div class="hp-fill-small ${pulseS}" style="height:${p.isAlive?(p.isGroggy?100:(p.health||100)):0}%; background-color:${colorS};"></div></div>`;
+                    });
+
+                    sortedForTop4List.forEach(p => {
+                        let rawName = p.name || '';
+                        let safeTeamName = team.team_name.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+                        let prefixRegex = new RegExp('^' + safeTeamName + '[_\\-\\s]?', 'i');
+                        let cleanName = rawName.replace(prefixRegex, '');
+
+                        const pulseL = (p.isAlive && p.isGroggy) ? 'knocked-pulse' : '';
+                        const colorL = p.isAlive ? (p.isGroggy ? 'var(--c-hp-knocked)' : 'var(--c-hp-alive)') : 'transparent';
+                        
+                        playerDetailsHtml += `
+                            <div class="player-item">
+                                <div class="player-name ${p.isAlive ? '' : 'dead'}">${cleanName}</div>
+                                <div class="player-hp-bar"><div class="player-hp-fill ${pulseL}" style="width:${p.isAlive?(p.isGroggy?100:(p.health||100)):0}%; background-color:${colorL};"></div></div>
+                            </div>`;
+                    });
+                }
+
+                // 💡 [Smart Logic] ถ้าตรวจพบคนเกิดใหม่ ให้พับเก็บป้ายบลูชิปทันที
+                if (revivedPlayersQueue.length > 0) {
+                    activeRecalls[team.team_name] = false;
+                }
+
+                // สั่งแสดงผลป้ายบลูชิป
+                const bcPanel = wrapperRow.querySelector('.blue-chip-panel');
+                if (bcPanel) {
+                    if (activeRecalls[team.team_name] && teamIsAlive) {
+                        bcPanel.classList.add('active');
                     } else {
-                        blueChipPanel.classList.remove('active');
+                        bcPanel.classList.remove('active');
                     }
                 }
 
-                if (isMatchReset && !teamIsAlive) {
+                if (!teamIsAlive && !currentTeamsEliminated[team.team_name] && !isMatchReset) {
                     currentTeamsEliminated[team.team_name] = true;
-                    teamEliminatedTime[team.team_name] = 0; 
-                }
-
-                const isJustEliminated = !teamIsAlive && !currentTeamsEliminated[team.team_name] && !isMatchReset;
-
-                if (isJustEliminated) {
-                    currentTeamsEliminated[team.team_name] = true;
-                    teamEliminatedTime[team.team_name] = Date.now(); 
+                    teamEliminatedTime[team.team_name] = Date.now();
                     
                     const cacheBuster = Date.now();
                     const bannerClass = useGifMode ? 'eliminated-banner gif-mode animate' : 'eliminated-banner default-mode animate';
-                    const bannerText = useGifMode ? '' : '&gt;&gt; ELIMINATED &lt;&lt;';
+                    const bannerText = useGifMode ? '' : '>> ELIMINATED <<';
                     const inlineStyle = useGifMode ? `style="background-image: url('${LOCAL_LOGO_PATH}ELIMINATED.gif?t=${cacheBuster}');"` : '';
                     
                     innerRow.querySelector('.banner-layer').innerHTML = `<div class="${bannerClass}" ${inlineStyle}>${bannerText}</div>`;
-
-                    setTimeout(() => { const b = innerRow.querySelector('.eliminated-banner'); if (b) b.remove(); }, elimDurationMs + 50);
+                    setTimeout(() => { if(innerRow.querySelector('.eliminated-banner')) innerRow.querySelector('.eliminated-banner').remove(); }, elimDurationMs + 50);
 
                     if (isTop4Period && !top4Teams.includes(team.team_name)) {
-                        setTimeout(() => { innerRow.classList.remove('expanded'); innerRow.classList.add('collapsed'); }, elimDurationMs * 0.8); 
-                        setTimeout(() => { wrapperRow.classList.add('hidden-top4'); }, elimDurationMs); 
+                        setTimeout(() => { innerRow.classList.remove('expanded'); innerRow.classList.add('collapsed'); }, elimDurationMs * 0.8);
+                        setTimeout(() => { wrapperRow.classList.add('hidden-top4'); }, elimDurationMs);
                     }
                 }
 
                 if (revivedPlayersQueue.length > 0 && !isMatchReset) {
                     currentTeamsEliminated[team.team_name] = false; 
-                    
                     revivedPlayersQueue.forEach((playerName, idx) => {
                         setTimeout(() => {
                             const cacheBuster = Date.now() + idx;
@@ -532,41 +473,27 @@
                             bannerHtml.className = 'revived-banner animate';
                             bannerHtml.style.backgroundImage = `url('./REVIVED.png?t=${cacheBuster}')`;
                             bannerHtml.innerHTML = `<span class="revived-text">REVIVED: ${playerName}</span>`;
-                            
                             innerRow.querySelector('.banner-layer').appendChild(bannerHtml);
-                            
                             setTimeout(() => { bannerHtml.remove(); }, 4050);
                         }, idx * 4200);
                     });
                 }
 
-                let expansionClass = 'collapsed', visibilityClass = '', eliminationClass = teamIsAlive ? '' : 'eliminated-team'; 
+                let expansionClass = 'collapsed', visibilityClass = ''; 
                 const timeSinceDeath = Date.now() - (teamEliminatedTime[team.team_name] || 0);
-                const dynamicSlideOutMs = elimDurationMs * 0.8;
 
                 if (showFinalStandings) {
                     expansionClass = 'collapsed';
-                    visibilityClass = ''; 
                 } else if (isMatchEnded) {
-                    if (top4Teams.includes(team.team_name) || top4Teams.length === 0) {
-                        expansionClass = teamIsAlive ? 'expanded' : 'collapsed';
-                    } else {
-                        visibilityClass = 'hidden-top4';
-                    }
+                    if (top4Teams.includes(team.team_name) || top4Teams.length === 0) expansionClass = teamIsAlive ? 'expanded' : 'collapsed';
+                    else visibilityClass = 'hidden-top4';
                 } else if (isTop4Period) {
-                    if (top4Teams.includes(team.team_name)) {
-                        if (teamIsAlive) {
-                            expansionClass = 'expanded';
-                        } else {
-                            expansionClass = 'collapsed';
-                        }
-                    } else {
-                        if (timeSinceDeath < dynamicSlideOutMs) expansionClass = 'expanded';
+                    if (top4Teams.includes(team.team_name)) expansionClass = teamIsAlive ? 'expanded' : 'collapsed';
+                    else {
+                        if (timeSinceDeath < elimDurationMs * 0.8) expansionClass = 'expanded';
                         else if (timeSinceDeath < elimDurationMs) expansionClass = 'collapsed';
                         else visibilityClass = 'hidden-top4';
                     }
-                } else {
-                    expansionClass = 'collapsed';
                 }
 
                 const themeClass = index === 0 ? 'first-place' : 'normal-place';
@@ -575,33 +502,26 @@
                 wrapperRow.classList.remove('hidden-top4');
                 if(visibilityClass === 'hidden-top4') wrapperRow.classList.add('hidden-top4');
 
-                innerRow.className = `team-row-inner ${themeClass} ${expansionClass} ${eliminationClass} ${bluezoneClass}`;
+                innerRow.className = `team-row-inner ${themeClass} ${expansionClass} ${!teamIsAlive ? 'eliminated-team' : ''} ${bluezoneClass}`;
                 
-                if (isNewRow) {
-                    const logoSrc = `${LOCAL_LOGO_PATH}${team.team_name}.png`;
-                    innerRow.querySelector('.row-grid-wrapper').innerHTML = `
-                        <div class="row-grid">
-                            <div class="col-rank">${index + 1}</div>
-                            <div class="col-team"><img class="team-logo" src="${logoSrc}" onerror="this.style.visibility='hidden'"><div class="team-name">${team.team_name}</div></div>
-                            <div class="col-alive">${dotsHtml}</div>
-                            <div class="col-pts">${team.total_pts_with_penalty}</div>
-                            <div class="col-kills">${team.match_kills}</div>
-                        </div>
-                        <div class="player-list">${playerDetailsHtml}</div>
-                    `;
-                } else {
-                    innerRow.querySelector('.col-rank').innerText = index + 1;
-                    innerRow.querySelector('.col-pts').innerText = team.total_pts_with_penalty;
-                    innerRow.querySelector('.col-kills').innerText = team.match_kills;
-                }
+                const logoSrc = `${LOCAL_LOGO_PATH}${team.team_name}.png`;
+                innerRow.querySelector('.row-grid-wrapper').innerHTML = `
+                    <div class="row-grid">
+                        <div class="col-rank">${index + 1}</div>
+                        <div class="col-team"><img class="team-logo" src="${logoSrc}" onerror="this.style.visibility='hidden'"><div class="team-name">${team.team_name}</div></div>
+                        <div class="col-alive">${dotsHtml}</div>
+                        <div class="col-pts">${team.total_pts_with_penalty}</div>
+                        <div class="col-kills">${team.match_kills}</div>
+                    </div>
+                    <div class="player-list">${playerDetailsHtml}</div>
+                `;
             });
 
             requestAnimationFrame(() => {
                 scoreboard.querySelectorAll('.team-wrapper').forEach(wrapperRow => {
                     const oldTop = oldPositions[wrapperRow.id];
                     if (oldTop !== undefined) {
-                        const newTop = wrapperRow.getBoundingClientRect().top;
-                        const deltaY = oldTop - newTop;
+                        const deltaY = oldTop - wrapperRow.getBoundingClientRect().top;
                         if (deltaY !== 0) {
                             wrapperRow.style.transition = 'none';
                             wrapperRow.style.transform = `translateY(${deltaY}px)`;
