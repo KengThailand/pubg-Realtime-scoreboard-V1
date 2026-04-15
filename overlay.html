@@ -71,6 +71,7 @@
             will-change: max-height, opacity;
         }
 
+        /* 💡 นำค่า Opacity มาใช้งานตรงนี้ */
         .bg-layer {
             position: absolute; top: 0; left: 0; width: 100%; height: 100%; z-index: 0;
             background-color: var(--c-team-bg-alive);
@@ -259,9 +260,9 @@
         let playerStates = {}; 
         let teamEliminatedTime = {}; 
         
-        // 💡 1. ตัวแปรเก็บสถานะ Top 4 แบบล็อคตายตัว
-        let lockedTop4Teams = []; 
-        let top4Teams = []; 
+        // 🌟 1. ตัวแปรเก็บสถานะ Top 4 แบบล็อคตายตัว
+        let finalTop4 = []; 
+        let isTop4Locked = false; 
         
         let isFirstRender = true;
         let top4EntryTime = 0; 
@@ -273,11 +274,12 @@
 
         let matchEndTime = 0;
 
-        // --- โหลด State ของ Top4 จาก localStorage ตอนเปิดหน้าเว็บ ---
+        // 🌟 2. โหลด State ของ Top4 จาก localStorage ตอนเปิดหน้าเว็บ (กัน F5)
         try {
-            const savedTop4 = JSON.parse(localStorage.getItem(`pubg_top4_${tourneyId || 'demo'}`) || "[]");
+            const savedTop4 = JSON.parse(localStorage.getItem(`pubg_finalTop4_${tourneyId || 'demo'}`) || "[]");
             if (savedTop4.length > 0) {
-                lockedTop4Teams = savedTop4;
+                finalTop4 = savedTop4;
+                isTop4Locked = true;
             }
         } catch(e) {}
 
@@ -465,7 +467,7 @@
             const totalAlivePlayers = data.data.teams.reduce((sum, t) => sum + (t.players ? t.players.filter(p => p.isAlive).length : 0), 0);
             let isMatchReset = false;
             
-            // 💡 ถ้าคนรอดชีวิตกระโดดขึ้นเยอะ แสดงว่าเริ่มเกมใหม่ ให้ทำการล้าง State ของ Top 4
+            // 💡 3. ถ้าคนรอดชีวิตกระโดดขึ้นเยอะ (เริ่มเกมใหม่) ให้ทำการล้าง State ของ Top 4 ซะ
             if (totalAlivePlayers > previousAliveCount + 30 || isFirstRender) {
                 isMatchReset = true;
             }
@@ -478,9 +480,9 @@
                 activeRecalls = {};
                 
                 // ล้างความจำของเก่า
-                lockedTop4Teams = [];
-                top4Teams = [];
-                localStorage.removeItem(`pubg_top4_${tourneyId || 'demo'}`);
+                finalTop4 = [];
+                isTop4Locked = false;
+                localStorage.removeItem(`pubg_finalTop4_${tourneyId || 'demo'}`);
             }
 
             const scoreboard = document.getElementById('scoreboard');
@@ -513,26 +515,20 @@
 
             const isTop4Period = !isMatchEnded && !showFinalStandings && aliveTeamsCount <= 4 && (isMatchReset || (Date.now() - top4EntryTime >= elimDurationMs));
 
-            // 💡 2. ล็อค Top 4 กัน F5 และเน็ตหลุด
-            if (isTop4Period) {
-                if (lockedTop4Teams.length === 0) {
-                    lockedTop4Teams = aliveTeams.map(t => t.team_name);
-                    // เซฟลงเครื่องเผื่อ F5
-                    localStorage.setItem(`pubg_top4_${tourneyId || 'demo'}`, JSON.stringify(lockedTop4Teams));
-                }
-                top4Teams = [...lockedTop4Teams];
-            } else if (!isMatchEnded) {
-                // เผื่อเปิดจอมาปุ๊บเจอ Top 4 เลยแบบไม่มีจังหวะ transition (Fallback)
-                if (top4Teams.length === 0 && aliveTeamsCount <= 4 && aliveTeamsCount > 0) {
-                    // เอาทีมที่รอด + ทีมที่ตายล่าสุดให้ครบ 4
-                    top4Teams = sortedTeams.slice(0, 4).map(t => t.team_name);
-                    lockedTop4Teams = [...top4Teams];
-                    localStorage.setItem(`pubg_top4_${tourneyId || 'demo'}`, JSON.stringify(lockedTop4Teams));
-                } else if(aliveTeamsCount > 4) {
-                    top4Teams = []; 
-                    lockedTop4Teams = [];
-                }
+            // 🌟 4. ล็อค Top 4 ทันทีที่เหลือ 4 ทีม (สำคัญสุด)
+            if (aliveTeamsCount === 4 && !isTop4Locked && !showFinalStandings && !isMatchReset) {
+                finalTop4 = aliveTeams.map(t => t.team_name);
+                isTop4Locked = true;
+                localStorage.setItem(`pubg_finalTop4_${tourneyId || 'demo'}`, JSON.stringify(finalTop4));
+            } 
+            // Fallback เผื่อเปิดจอมาปุ๊บเจอ Top 3 หรือ Top 2 เลย (ไม่มีโอกาสจับจังหวะ 4 ทีม)
+            else if (aliveTeamsCount > 0 && aliveTeamsCount < 4 && !isTop4Locked && !showFinalStandings && !isMatchReset) {
+                finalTop4 = sortedTeams.slice(0, 4).map(t => t.team_name);
+                isTop4Locked = true;
+                localStorage.setItem(`pubg_finalTop4_${tourneyId || 'demo'}`, JSON.stringify(finalTop4));
             }
+
+            // 💡 นำส่วนการเรียง finalTop4 ออก ปล่อยให้มันจัดเรียงไปตาม logic เริ่มต้น
 
             sortedTeams.forEach((team, index) => {
                 let wrapperRow = document.getElementById(`team-${team.team_name}`);
@@ -630,14 +626,11 @@
                     }
                 }
 
-                // 💡 3. กันแบนเนอร์ตายหายตอน F5
-                if (!teamIsAlive && top4Teams.includes(team.team_name) && !currentTeamsEliminated[team.team_name]) {
+                if (!teamIsAlive && finalTop4.includes(team.team_name) && !currentTeamsEliminated[team.team_name]) {
                     currentTeamsEliminated[team.team_name] = true;
-                    // ถ้าเกิดจาก F5 เราจะถือว่ามันตายไปนานแล้ว จะได้ไม่เด้งแบนเนอร์ใหม่
                     teamEliminatedTime[team.team_name] = isFirstRender ? 0 : Date.now(); 
                 }
 
-                // ถ้าเพิ่งตายสดๆ (ไม่ใช่เพราะ F5) ค่อยแสดงป้ายแบนเนอร์
                 if (!teamIsAlive && currentTeamsEliminated[team.team_name] && teamEliminatedTime[team.team_name] !== 0 && (Date.now() - teamEliminatedTime[team.team_name] < 100)) {
                     const cacheBuster = Date.now();
                     const bannerClass = useGifMode ? 'eliminated-banner gif-mode animate' : 'eliminated-banner default-mode animate';
@@ -646,8 +639,6 @@
                     
                     innerRow.querySelector('.banner-layer').innerHTML = `<div class="${bannerClass}" ${inlineStyle}>${bannerText}</div>`;
                     setTimeout(() => { if(innerRow.querySelector('.eliminated-banner')) innerRow.querySelector('.eliminated-banner').remove(); }, elimDurationMs + 50);
-
-                    // 💡 ไม่สั่ง collapse หรือ hide ตรงนี้แล้ว เพื่อให้ css class จัดการเอง
                 }
 
                 if (revivedPlayersQueue.length > 0 && !isMatchReset) {
@@ -667,22 +658,20 @@
 
                 let expansionClass = 'collapsed', visibilityClass = ''; 
                 const timeSinceDeath = Date.now() - (teamEliminatedTime[team.team_name] || 0);
-                const isTop4Member = top4Teams.includes(team.team_name);
+                const isTop4Member = finalTop4.includes(team.team_name);
 
                 if (showFinalStandings) {
                     expansionClass = 'collapsed';
                 } else if (isMatchEnded) {
-                    if (isTop4Member || top4Teams.length === 0) expansionClass = teamIsAlive ? 'expanded' : 'collapsed';
+                    if (isTop4Member || finalTop4.length === 0) expansionClass = teamIsAlive ? 'expanded' : 'collapsed';
                     else visibilityClass = 'hidden-top4';
-                } else if (isTop4Period) {
-                    // 💡 4. กันทีมที่ตายหายไปจากจอ
+                } else if (isTop4Period || isTop4Locked) { 
                     if (!isTop4Member) {
                         visibilityClass = 'hidden-top4';
                     } else {
                         if (teamIsAlive) {
                             expansionClass = 'expanded';
                         } else {
-                            // ถ้าเพิ่งตาย ให้กางค้างไว้แป๊บนึง ก่อนจะพับเก็บ
                             if (timeSinceDeath < elimDurationMs * 0.8 && teamEliminatedTime[team.team_name] !== 0) {
                                 expansionClass = 'expanded';
                             } else {
@@ -695,7 +684,6 @@
                 const themeClass = index === 0 ? 'first-place' : 'normal-place';
                 const bluezoneClass = (teamInBlueZone && teamIsAlive) ? 'in-bluezone' : '';
                 
-                // จัดการคลาสโชว์/ซ่อน
                 if(visibilityClass === 'hidden-top4') {
                     wrapperRow.classList.add('hidden-top4');
                 } else {
