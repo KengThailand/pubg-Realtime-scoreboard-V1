@@ -23,7 +23,7 @@
             font-weight: normal; font-style: normal;
         }
 
-        /* 🟢 5. เพิ่ม GPU acceleration ให้ทุก animation */
+        /* 🟢 GPU acceleration */
         * {
             font-family: 'TransducerCondensed', sans-serif !important;
             letter-spacing: 0.5px;
@@ -53,14 +53,17 @@
         }
         .team-wrapper.is-moving { z-index: 10; }
         
-        /* 🟢 4. ห้ามใช้ display: none ตอน animation (เพิ่ม position absolute เพื่อถอดจาก Flow ทันที) */
+        /* 🟢 1. ถอด position: absolute ออก ป้องกัน Layout พังเวลามี FLIP animation */
         .team-wrapper.hidden-top4 { 
             opacity: 0;
             transform: scale(0.95) translateZ(0);
             pointer-events: none;
-            position: absolute; 
             visibility: hidden;
-            transition: opacity 0.3s ease, transform 0.3s ease;
+            height: 0 !important;
+            margin: 0 !important;
+            padding: 0 !important;
+            overflow: hidden;
+            transition: opacity 0.3s ease, transform 0.3s ease, height 0.3s ease;
         }
 
         .team-row-inner {
@@ -97,9 +100,10 @@
             100% { filter: brightness(1); } 
         }
         
+        /* 🟢 จัดการป้ายบลูชิปให้สไลด์แอบหลังตารางไปทางขวา */
         .blue-chip-panel {
             position: absolute;
-            right: 0; 
+            right: -38px; /* เอาไปวางไว้นอกขอบขวา */
             top: 0;
             width: 38px; 
             height: 32px; 
@@ -107,9 +111,9 @@
             display: flex;
             align-items: center;
             justify-content: center;
-            z-index: 10;
+            z-index: 1; /* ให้อยู่ข้างหลังทีม (.team-row-inner มี z-index: 2) */
             opacity: 0;
-            transform: translate3d(0, 0, 0); 
+            transform: translate3d(-100%, 0, 0); /* ตอนซ่อนให้หดกลับมาแอบใต้ตาราง */
             pointer-events: none;
             transition: transform 0.5s cubic-bezier(0.25, 0.8, 0.25, 1), opacity 0.3s ease;
             will-change: transform, opacity;
@@ -117,7 +121,7 @@
 
         .blue-chip-panel.active {
             opacity: 1;
-            transform: translate3d(38px, 0, 0); 
+            transform: translate3d(0, 0, 0); /* สไลด์เด้งโผล่ออกมาด้านขวาเต็มใบ */
             animation: bluechip-glow 1.5s infinite ease-in-out;
         }
 
@@ -142,7 +146,7 @@
         .team-logo { width: 28px; height: 28px; margin-right: 8px; object-fit: contain; background-color: transparent; flex-shrink: 0; transform: translateZ(0); }
         .team-name { font-size: 20px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; line-height: 1; }
 
-        /* 🟢 1. เปลี่ยน HP เป็น transform scaleY */
+        /* 🟢 เปลี่ยน HP เป็น transform scaleY */
         .alive-bar { position: relative; width: 6px; height: 18px; border-radius: 1px; border: 1px solid #000000; box-sizing: border-box; background-color: #111111; overflow: hidden; transform: translateZ(0); }
         .hp-fill-small { 
             position: absolute; bottom: 0; left: 0; width: 100%; 
@@ -158,7 +162,7 @@
         .player-name { font-size: 15px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; color: var(--c-team-text-alive); }
         .player-name.dead { color: var(--c-team-text-dead); opacity: 0.7; }
         
-        /* 🟢 2. Player HP bar ใช้ scaleX */
+        /* 🟢 Player HP bar ใช้ scaleX */
         .player-hp-bar { height: 10px; background-color: #444; border: 1px solid #000; position: relative; overflow: hidden; transform: translateZ(0); }
         .player-hp-fill { 
             height: 100%; 
@@ -260,9 +264,9 @@
         let playerStates = {}; 
         let teamEliminatedTime = {}; 
         
-        // 🌟 1. ตัวแปรเก็บสถานะ Top 4 แบบล็อคตายตัว
         let finalTop4 = []; 
         let isTop4Locked = false; 
+        let top4EliminationOrder = []; 
         
         let isFirstRender = true;
         let top4EntryTime = 0; 
@@ -274,12 +278,14 @@
 
         let matchEndTime = 0;
 
-        // 🌟 2. โหลด State ของ Top4 จาก localStorage ตอนเปิดหน้าเว็บ (กัน F5)
+        // 🌟 โหลด State ของ Top4 จาก localStorage ตอนเปิดหน้าเว็บ (กัน F5)
         try {
             const savedTop4 = JSON.parse(localStorage.getItem(`pubg_finalTop4_${tourneyId || 'demo'}`) || "[]");
+            const savedOrder = JSON.parse(localStorage.getItem(`pubg_top4Order_${tourneyId || 'demo'}`) || "[]");
             if (savedTop4.length > 0) {
                 finalTop4 = savedTop4;
                 isTop4Locked = true;
+                top4EliminationOrder = savedOrder;
             }
         } catch(e) {}
 
@@ -464,14 +470,14 @@
             if (!data || !data.data || !data.data.teams) return;
             latestData = data; 
 
-            const totalAlivePlayers = data.data.teams.reduce((sum, t) => sum + (t.players ? t.players.filter(p => p.isAlive).length : 0), 0);
+            // 🟢 4. ปรับเงื่อนไขการเช็ค Match Reset ให้แม่นยำขึ้น
+            const aliveTeamsCountCheck = data.data.teams.filter(t => t.players && t.players.some(p => p.isAlive)).length;
             let isMatchReset = false;
             
-            // 💡 3. ถ้าคนรอดชีวิตกระโดดขึ้นเยอะ (เริ่มเกมใหม่) ให้ทำการล้าง State ของ Top 4 ซะ
-            if (totalAlivePlayers > previousAliveCount + 30 || isFirstRender) {
+            // เช็คจากจำนวนทีมที่รอดชีวิต ถ้าเยอะผิดปกติ (>=14) แสดงว่าเริ่มเกมใหม่แน่นอน
+            if (aliveTeamsCountCheck >= 14 || isFirstRender) {
                 isMatchReset = true;
             }
-            previousAliveCount = totalAlivePlayers;
 
             if (isMatchReset) {
                 matchEndTime = 0;
@@ -481,8 +487,10 @@
                 
                 // ล้างความจำของเก่า
                 finalTop4 = [];
+                top4EliminationOrder = [];
                 isTop4Locked = false;
                 localStorage.removeItem(`pubg_finalTop4_${tourneyId || 'demo'}`);
+                localStorage.removeItem(`pubg_top4Order_${tourneyId || 'demo'}`);
             }
 
             const scoreboard = document.getElementById('scoreboard');
@@ -515,20 +523,14 @@
 
             const isTop4Period = !isMatchEnded && !showFinalStandings && aliveTeamsCount <= 4 && (isMatchReset || (Date.now() - top4EntryTime >= elimDurationMs));
 
-            // 🌟 4. ล็อค Top 4 ทันทีที่เหลือ 4 ทีม (สำคัญสุด)
-            if (aliveTeamsCount === 4 && !isTop4Locked && !showFinalStandings && !isMatchReset) {
-                finalTop4 = aliveTeams.map(t => t.team_name);
+            // 🌟 1. ล็อค Top 4 จากทีมที่มีชีวิตเท่านั้น
+            if (aliveTeamsCount === 4 && !isTop4Locked && !isMatchReset) {
+                finalTop4 = aliveTeams.map(t => t.team_name); 
                 isTop4Locked = true;
+                top4EliminationOrder = []; // รีเซ็ตลำดับการตาย
+
                 localStorage.setItem(`pubg_finalTop4_${tourneyId || 'demo'}`, JSON.stringify(finalTop4));
             } 
-            // Fallback เผื่อเปิดจอมาปุ๊บเจอ Top 3 หรือ Top 2 เลย (ไม่มีโอกาสจับจังหวะ 4 ทีม)
-            else if (aliveTeamsCount > 0 && aliveTeamsCount < 4 && !isTop4Locked && !showFinalStandings && !isMatchReset) {
-                finalTop4 = sortedTeams.slice(0, 4).map(t => t.team_name);
-                isTop4Locked = true;
-                localStorage.setItem(`pubg_finalTop4_${tourneyId || 'demo'}`, JSON.stringify(finalTop4));
-            }
-
-            // 💡 นำส่วนการเรียง finalTop4 ออก ปล่อยให้มันจัดเรียงไปตาม logic เริ่มต้น
 
             sortedTeams.forEach((team, index) => {
                 let wrapperRow = document.getElementById(`team-${team.team_name}`);
@@ -626,12 +628,19 @@
                     }
                 }
 
+                // 🌟 3. บันทึกลำดับการตาย (กัน Push ซ้ำ)
                 if (!teamIsAlive && finalTop4.includes(team.team_name) && !currentTeamsEliminated[team.team_name]) {
                     currentTeamsEliminated[team.team_name] = true;
                     teamEliminatedTime[team.team_name] = isFirstRender ? 0 : Date.now(); 
+                    
+                    if (!top4EliminationOrder.includes(team.team_name)) {
+                        top4EliminationOrder.push(team.team_name);
+                        localStorage.setItem(`pubg_top4Order_${tourneyId || 'demo'}`, JSON.stringify(top4EliminationOrder));
+                    }
                 }
 
-                if (!teamIsAlive && currentTeamsEliminated[team.team_name] && teamEliminatedTime[team.team_name] !== 0 && (Date.now() - teamEliminatedTime[team.team_name] < 100)) {
+                // 🟢 5. ขยาย Window เป็น 300ms ป้องกันแบนเนอร์ไม่ยอมโชว์เวลา OBS กระตุก
+                if (!teamIsAlive && currentTeamsEliminated[team.team_name] && teamEliminatedTime[team.team_name] !== 0 && (Date.now() - teamEliminatedTime[team.team_name] < 300)) {
                     const cacheBuster = Date.now();
                     const bannerClass = useGifMode ? 'eliminated-banner gif-mode animate' : 'eliminated-banner default-mode animate';
                     const bannerText = useGifMode ? '' : '>> ELIMINATED <<';
@@ -657,25 +666,33 @@
                 }
 
                 let expansionClass = 'collapsed', visibilityClass = ''; 
-                const timeSinceDeath = Date.now() - (teamEliminatedTime[team.team_name] || 0);
-                const isTop4Member = finalTop4.includes(team.team_name);
-
+                
+                // 🌟 4. Logic “พับทีละทีมแบบ PGS”
                 if (showFinalStandings) {
                     expansionClass = 'collapsed';
-                } else if (isMatchEnded) {
-                    if (isTop4Member || finalTop4.length === 0) expansionClass = teamIsAlive ? 'expanded' : 'collapsed';
+                } else if (isMatchEnded && !isTop4Locked) {
+                    if (teamIsAlive) expansionClass = 'expanded';
                     else visibilityClass = 'hidden-top4';
-                } else if (isTop4Period || isTop4Locked) { 
-                    if (!isTop4Member) {
+                } else if (isTop4Locked) {
+                    if (!finalTop4.includes(team.team_name)) {
                         visibilityClass = 'hidden-top4';
                     } else {
+                        const elimIndex = top4EliminationOrder.indexOf(team.team_name);
+
                         if (teamIsAlive) {
-                            expansionClass = 'expanded';
+                            expansionClass = 'expanded'; // ยังไม่ตาย
                         } else {
-                            if (timeSinceDeath < elimDurationMs * 0.8 && teamEliminatedTime[team.team_name] !== 0) {
+                            if (elimIndex === -1) {
                                 expansionClass = 'expanded';
                             } else {
-                                expansionClass = 'collapsed';
+                                // 🟢 2. ปรับสูตรคำนวณ Delay (4s -> 8s -> 12s)
+                                const delay = (elimIndex + 1) * elimDurationMs; 
+
+                                if (Date.now() - teamEliminatedTime[team.team_name] > delay && teamEliminatedTime[team.team_name] !== 0) {
+                                    expansionClass = 'collapsed';
+                                } else {
+                                    expansionClass = 'expanded';
+                                }
                             }
                         }
                     }
@@ -728,7 +745,8 @@
                             wrapperRow.style.transform = `translate3d(0, ${deltaY}px, 0)`;
                             wrapperRow.classList.add('is-moving'); 
                             
-                            wrapperRow.offsetHeight; 
+                            // 🟢 6. ใช้ getComputedStyle แทน offsetHeight ป้องกัน FLIP กระตุก
+                            getComputedStyle(wrapperRow).transform;
 
                             requestAnimationFrame(() => {
                                 wrapperRow.style.transition = 'transform 0.5s cubic-bezier(0.25, 0.8, 0.25, 1)';
