@@ -271,9 +271,8 @@
         let latestData = null;
         let previousAliveCount = 0; 
         
-        let teamBluechipCounts = {};
+        let teamBluechipCounts = {}; // 🟢 เก็บค่าการกด Bluechip
         let activeRecalls = {};
-
         let matchEndTime = 0;
 
         // 🌟 โหลด State ของ Top4 จาก localStorage ตอนเปิดหน้าเว็บ (กัน F5)
@@ -483,13 +482,15 @@
                         p.isInBlueZone = Math.random() < 0.15;
                     });
 
+                    // Random Bluechip Revive for Early/Mid Game (Simulator Trigger)
                     if ((phase === "early" || phase === "mid") && Math.random() < 0.08 && team.players.some(p => !p.isAlive)) {
                         const dead = team.players.find(p => !p.isAlive);
                         if (dead) {
+                            // ในบอท Simulator มันเกิดพร้อมกัน แต่ของจริงจะแยกจังหวะ
                             dead.isAlive = true;
                             dead.health = 100;
                             dead.isGroggy = false;
-                            team.useBluechipCount++;
+                            team.useBluechipCount++; // จำลองการเพิ่ม Counter
                         }
                     }
                 });
@@ -606,7 +607,7 @@
                 let teamIsAlive = false, teamInBlueZone = false, revivedPlayersQueue = [];
                 let dotsHtml = '', playerDetailsHtml = ''; 
 
-                // 🌟 1. ดัก Field API เผื่อมาครบ
+                // 🌟 1. ดักการ "กดใช้เครื่อง" จาก Field API (Trigger Open)
                 let currentBluechipCount = team.useBluechipCount || team.revive_count || team.bluechip_revive || team.revives || 0;
                 
                 if (teamBluechipCounts[team.team_name] === undefined) {
@@ -614,8 +615,24 @@
                 }
 
                 if (currentBluechipCount > teamBluechipCounts[team.team_name]) {
-                    activeRecalls[team.team_name] = true;
-                    teamBluechipCounts[team.team_name] = currentBluechipCount; 
+                    // หน่วงเวลาให้เนียนกับ Broadcast 500ms
+                    setTimeout(() => {
+                        activeRecalls[team.team_name] = true;
+                        
+                        // อัปเดต UI เปิด Panel
+                        const panel = document.getElementById(`team-${team.team_name}`)?.querySelector('.blue-chip-panel');
+                        if(panel) panel.classList.add('active');
+
+                        // Failsafe: เผื่อเกิดไม่สำเร็จ หรือ API ไม่อัปเดต ให้ Panel ปิดเองใน 8 วิ
+                        setTimeout(() => {
+                            activeRecalls[team.team_name] = false;
+                            const panelToClose = document.getElementById(`team-${team.team_name}`)?.querySelector('.blue-chip-panel');
+                            if(panelToClose) panelToClose.classList.remove('active');
+                        }, 8000);
+
+                    }, 500);
+
+                    teamBluechipCounts[team.team_name] = currentBluechipCount;
                 }
 
                 let safeTeamTag = team.team_tag.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
@@ -638,6 +655,7 @@
                         let rawName = p.name || '';
                         let cleanName = rawName.replace(prefixRegex, '');
 
+                        // 🎯 2. ตรวจจับการ "เกิดสำเร็จ" เปลี่ยนสถานะ DEAD -> ALIVE 
                         if (!isMatchReset && playerStates[rawName] === false && p.isAlive === true) {
                             revivedPlayersQueue.push(cleanName);
                         }
@@ -666,17 +684,12 @@
                     });
                 }
 
-                // 🌟 2. บังคับแสดงป้าย Bluechip ถ้ามีคนเกิด (Fallback เผื่อ API ไม่บอก)
+                // 🌟 ระบบโชว์ป้าย Bluechip Recall แท้ (Trigger Close เมื่อมีผู้เล่นเกิด)
                 if (revivedPlayersQueue.length > 0 && !isMatchReset) {
-                    activeRecalls[team.team_name] = true;
-                    
-                    // สั่งปิดเองอัตโนมัติเมื่อครบเวลา
-                    setTimeout(() => {
-                        activeRecalls[team.team_name] = false;
-                        // อัปเดต UI ทันที
-                        const panel = document.getElementById(`team-${team.team_name}`)?.querySelector('.blue-chip-panel');
-                        if(panel) panel.classList.remove('active');
-                    }, 5000); 
+                    // ปิด Panel ທันที เมื่อผู้เล่นเกิด
+                    activeRecalls[team.team_name] = false;
+                    const panel = wrapperRow.querySelector('.blue-chip-panel');
+                    if(panel) panel.classList.remove('active');
 
                     currentTeamsEliminated[team.team_name] = false; 
                     revivedPlayersQueue.forEach((playerName, idx) => {
@@ -692,6 +705,7 @@
                     });
                 }
 
+                // ซิงค์สถานะ Panel ป้องกัน UI ค้างเวลา Element ถูกสร้างใหม่
                 const bcPanel = wrapperRow.querySelector('.blue-chip-panel');
                 if (bcPanel) {
                     if (activeRecalls[team.team_name] && teamIsAlive) {
