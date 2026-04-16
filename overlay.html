@@ -111,7 +111,7 @@
             justify-content: center;
             z-index: 1; 
             opacity: 0;
-            transform: translate3d(-100%, 0, 0); 
+            transform: translate3d(-100%, 0, 0) scale(0.95); 
             pointer-events: none;
             transition: transform 0.5s cubic-bezier(0.25, 0.8, 0.25, 1), opacity 0.3s ease;
             will-change: transform, opacity;
@@ -119,14 +119,16 @@
 
         .blue-chip-panel.active {
             opacity: 1;
-            transform: translate3d(0, 0, 0); 
+            transform: translate3d(0, 0, 0) scale(1); 
             animation: bluechip-glow 1.5s infinite ease-in-out;
         }
 
         .blue-chip-icon {
             width: 100%;
             height: 100%;
-            object-fit: cover;
+            object-fit: contain;
+            padding: 3px;
+            box-sizing: border-box;
         }
 
         .col-rank, .col-team, .col-alive, .col-pts, .col-kills { display: flex; align-items: center; height: 100%; line-height: 1; }
@@ -229,15 +231,11 @@
         }
         
         #error-msg { color: #f59600; font-size: 14px; background: #222; padding: 15px; border: 1px solid #f59600; display: none; }
-        #demo-badge { position: absolute; top: -15px; left: 0; background: #2ecc71; color: #111; padding: 2px 8px; font-size: 12px; font-weight: bold !important; border-radius: 4px; display: none; z-index: 100; }
-        #phase-debug { position: absolute; top: -25px; right: 0; color: #00ffcc; font-size: 14px; font-family: monospace !important; font-weight: bold; text-shadow: 1px 1px 2px #000; display: none; z-index: 100; }
     </style>
 </head>
 <body>
 
     <div id="error-msg">กรุณาระบุ Tournament ID ผ่านการเจนลิงก์จากหน้า Control Panel (index.html) ก่อนนำมาใส่ใน OBS ครับ</div>
-    <div id="demo-badge">TEST MODE ACTIVED</div>
-    <div id="phase-debug">PHASE: INITIALIZING...</div>
 
     <div id="main-scoreboard" style="display: none;">
         <div class="scoreboard-container">
@@ -251,7 +249,6 @@
     <script>
         const urlParams = new URLSearchParams(window.location.search);
         const tourneyId = urlParams.get('tourney');
-        const isDemoMode = urlParams.get('demo') === 'true';
 
         let API_URL = "";
         const LOCAL_LOGO_PATH = "http://localhost/Keng/"; 
@@ -271,14 +268,14 @@
         let latestData = null;
         let previousAliveCount = 0; 
         
-        let teamBluechipCounts = {}; // 🟢 เก็บค่าการกด Bluechip
-        let activeRecalls = {};
+        let teamBluechipCounts = {};
+        let bluechipTimers = {}; 
         let matchEndTime = 0;
 
-        // 🌟 โหลด State ของ Top4 จาก localStorage ตอนเปิดหน้าเว็บ (กัน F5)
+        // โหลด State ของ Top4 จาก localStorage
         try {
-            const savedTop4 = JSON.parse(localStorage.getItem(`pubg_finalTop4_${tourneyId || 'demo'}`) || "[]");
-            const savedOrder = JSON.parse(localStorage.getItem(`pubg_top4Order_${tourneyId || 'demo'}`) || "[]");
+            const savedTop4 = JSON.parse(localStorage.getItem(`pubg_finalTop4_${tourneyId || 'default'}`) || "[]");
+            const savedOrder = JSON.parse(localStorage.getItem(`pubg_top4Order_${tourneyId || 'default'}`) || "[]");
             if (savedTop4.length > 0) {
                 finalTop4 = savedTop4;
                 isTop4Locked = true;
@@ -286,260 +283,36 @@
             }
         } catch(e) {}
 
-        // 🌟 ADVANCED DEMO SIMULATOR 🌟
-        function runDemoSimulator() {
-            let d = { data: { teams: [] } };
-            const realTeams = [
-                {name: "Team Falcons", tag: "FLC"}, {name: "17 Gaming", tag: "17"},
-                {name: "Four Angry Men", tag: "4AM"}, {name: "Anyone's Legend", tag: "AL"},
-                {name: "Baegopa", tag: "BGP"}, {name: "DN FREECS", tag: "DNF"},
-                {name: "eArena", tag: "EA"}, {name: "FURIA", tag: "FUR"},
-                {name: "FW Esports", tag: "FW"}, {name: "Gen.G", tag: "GEN"},
-                {name: "JDG Esports", tag: "JDG"}, {name: "Natus Vincere", tag: "NAVI"},
-                {name: "Petrichor Road", tag: "PeRo"}, {name: "T1", tag: "T1"},
-                {name: "The Expendables", tag: "TE"}, {name: "Twisted Minds", tag: "TWIS"}
-            ];
-
-            let phase = "early"; 
-            let top4StartTime = 0;
-            let TOP4_FREEZE_TIME = 15000; 
-            let demoTimeoutId = null;
-            
-            const debugEl = document.getElementById('phase-debug');
-            debugEl.style.display = 'block';
-
-            function initDemoData() {
-                d.data.teams = [];
-                for (let i = 0; i < 16; i++) {
-                    d.data.teams.push({
-                        team_name: realTeams[i].name,
-                        team_tag: realTeams[i].tag,
-                        total_pts_rank: i + 1,
-                        total_pts_with_penalty: Math.floor(Math.random() * 15),
-                        match_kills: 0,
-                        kill_pts: 0,
-                        place_pts: 0,
-                        useBluechipCount: 0,
-                        elimination: false,
-                        match_live_rank: 16,
-                        players: [1,2,3,4].map(n => ({
-                            name: `${realTeams[i].tag}_Player${n}`,
-                            isAlive: true,
-                            health: 100,
-                            isGroggy: false,
-                            isInBlueZone: false
-                        }))
-                    });
-                }
-                d.data.teams.sort((a, b) => b.total_pts_with_penalty - a.total_pts_with_penalty);
-                d.data.teams.forEach((t, i) => t.total_pts_rank = i + 1);
-            }
-
-            function getAliveTeams() {
-                return d.data.teams.filter(t => t.players.some(p => p.isAlive));
-            }
-
-            function randomKill(team) {
-                let alive = team.players.filter(p => p.isAlive);
-                if (alive.length === 0) return;
-
-                const victim = alive[Math.floor(Math.random() * alive.length)];
-                
-                if (!victim.isGroggy && alive.length > 1) {
-                    victim.isGroggy = true;
-                    victim.health = Math.random() * 20; 
-                } else {
-                    victim.isAlive = false;
-                    victim.health = 0;
-                    victim.isGroggy = false;
-                }
-                
-                alive = team.players.filter(p => p.isAlive);
-                if (alive.length === 0 || alive.every(p => p.isGroggy)) {
-                    team.players.forEach(p => {
-                        p.isAlive = false;
-                        p.health = 0;
-                        p.isGroggy = false;
-                    });
-                }
-            }
-
-            function randomDamage(team) {
-                team.players.forEach(p => {
-                    if (p.isAlive && !p.isGroggy) {
-                        let dmg = Math.random() * 30;
-                        p.health -= dmg;
-
-                        if (p.health <= 0) {
-                            const hasStandingTeammate = team.players.some(op => op.isAlive && !op.isGroggy && op.name !== p.name);
-                            if (hasStandingTeammate) {
-                                p.isGroggy = true;
-                                p.health = 15;
-                            } else {
-                                p.isAlive = false;
-                                p.health = 0;
-                                p.isGroggy = false;
-                            }
-                        }
-                    } else if (p.isGroggy) {
-                        p.health -= Math.random() * 5;
-                        if (p.health <= 0) {
-                            p.isAlive = false;
-                            p.health = 0;
-                            p.isGroggy = false;
-                        }
-                    }
-                });
-            }
-
-            function getPhaseDelay() {
-                if (phase === "early") return 2500;
-                if (phase === "mid") return 2000;
-                if (phase === "late") return 1500;
-                if (phase === "top4") return 1200; 
-                return 2000; 
-            }
-
-            function loop() {
-                simulateGame();
-                if(phase !== "end") {
-                    demoTimeoutId = setTimeout(loop, getPhaseDelay());
-                }
-            }
-
-            function simulateGame() {
-                const aliveTeams = getAliveTeams();
-                const aliveCount = aliveTeams.length;
-
-                if (aliveCount <= 12 && aliveCount > 8 && phase !== "mid") phase = "mid";
-                if (aliveCount <= 8 && aliveCount > 4 && phase !== "late") phase = "late";
-                
-                if (aliveCount <= 4 && aliveCount > 1 && phase !== "top4") { 
-                    phase = "top4"; 
-                    top4StartTime = Date.now();
-                }
-                
-                if (aliveCount <= 1 && phase !== "end") {
-                    phase = "end";
-                    clearTimeout(demoTimeoutId); 
-                    
-                    if(aliveTeams.length > 0) aliveTeams[0].total_pts_with_penalty += 10;
-                    
-                    d.data.teams.sort((a, b) => b.total_pts_with_penalty - a.total_pts_with_penalty);
-                    d.data.teams.forEach((t, i) => t.total_pts_rank = i + 1);
-                    renderScoreboard(d);
-                    debugEl.innerText = `PHASE: WINNER! | ALIVE: 1`;
-
-                    setTimeout(() => {
-                        phase = "early";
-                        initDemoData();
-                        renderScoreboard(d); 
-                        loop(); 
-                    }, 8000); 
-                    return;
-                }
-                
-                debugEl.innerText = `PHASE: ${phase.toUpperCase()} | ALIVE: ${aliveCount}`;
-
-                aliveTeams.forEach(team => {
-                    if (phase === "top4") {
-                        team.players.forEach(p => {
-                            if (p.isAlive && !p.isGroggy) {
-                                p.health -= Math.random() * 5;
-                                if (p.health < 5) p.health = 5; 
-                            }
-                        });
-                    } else {
-                        randomDamage(team);
-                    }
-
-                    let canKill = true;
-                    if (phase === "top4") {
-                        const elapsed = Date.now() - top4StartTime;
-                        if (elapsed < TOP4_FREEZE_TIME) {
-                            canKill = false; 
-                        }
-                    }
-
-                    let killChance = 0.05;
-                    if (phase === "mid") killChance = 0.15;
-                    if (phase === "late") killChance = 0.25;
-                    if (phase === "top4") killChance = 0.4;
-
-                    if (canKill && Math.random() < killChance) {
-                        randomKill(team);
-                        
-                        const allTeams = d.data.teams;
-                        const randomKillerTeam = allTeams[Math.floor(Math.random() * allTeams.length)];
-                        if(randomKillerTeam.players.some(p=>p.isAlive)) {
-                            randomKillerTeam.match_kills += 1;
-                            randomKillerTeam.kill_pts += 1;
-                            randomKillerTeam.total_pts_with_penalty += 1;
-                        }
-                    }
-
-                    team.players.forEach(p => {
-                        p.isInBlueZone = Math.random() < 0.15;
-                    });
-
-                    // Random Bluechip Revive for Early/Mid Game (Simulator Trigger)
-                    if ((phase === "early" || phase === "mid") && Math.random() < 0.08 && team.players.some(p => !p.isAlive)) {
-                        const dead = team.players.find(p => !p.isAlive);
-                        if (dead) {
-                            // ในบอท Simulator มันเกิดพร้อมกัน แต่ของจริงจะแยกจังหวะ
-                            dead.isAlive = true;
-                            dead.health = 100;
-                            dead.isGroggy = false;
-                            team.useBluechipCount++; // จำลองการเพิ่ม Counter
-                        }
-                    }
-                });
-
-                d.data.teams.forEach(t => {
-                    const isAlive = t.players.some(p => p.isAlive);
-                    if (!isAlive && !t.elimination) {
-                        t.elimination = true;
-                        t.match_live_rank = aliveCount + 1; 
-                    } else if (isAlive) {
-                        t.match_live_rank = aliveCount;
-                    }
-                });
-
-                d.data.teams.sort((a, b) => b.total_pts_with_penalty - a.total_pts_with_penalty);
-                d.data.teams.forEach((t, i) => t.total_pts_rank = i + 1);
-
-                renderScoreboard(d);
-            }
-
-            initDemoData();
-            renderScoreboard(d);
-            loop(); 
-        }
-        // 🌟 END ADVANCED DEMO SIMULATOR 🌟
-
         function renderScoreboard(data) {
             if (!data || !data.data || !data.data.teams) return;
             latestData = data; 
+            const now = Date.now();
 
             const aliveTeamsCountCheck = data.data.teams.filter(t => t.elimination === false || (t.players && t.players.some(p => p.isAlive))).length;
-            let isMatchReset = false;
             
-            if (aliveTeamsCountCheck >= 14 || isFirstRender) {
+            // ตรวจจับการเริ่มแมตช์ใหม่
+            let isMatchReset = false;
+            if (isFirstRender || (previousAliveCount < 10 && aliveTeamsCountCheck >= 14)) {
                 isMatchReset = true;
             }
             previousAliveCount = aliveTeamsCountCheck;
 
+            // 🟢 ล้างประวัติเกมส์เมื่อขึ้นแมตช์ใหม่
             if (isMatchReset) {
                 matchEndTime = 0;
                 top4EntryTime = 0;
                 teamBluechipCounts = {};
-                activeRecalls = {};
+                bluechipTimers = {}; 
+                
+                currentTeamsEliminated = {}; 
+                playerStates = {}; 
+                teamEliminatedTime = {};
                 
                 finalTop4 = [];
                 top4EliminationOrder = [];
                 isTop4Locked = false;
-                localStorage.removeItem(`pubg_finalTop4_${tourneyId || 'demo'}`);
-                localStorage.removeItem(`pubg_top4Order_${tourneyId || 'demo'}`);
+                localStorage.removeItem(`pubg_finalTop4_${tourneyId || 'default'}`);
+                localStorage.removeItem(`pubg_top4Order_${tourneyId || 'default'}`);
             }
 
             const scoreboard = document.getElementById('scoreboard');
@@ -553,24 +326,24 @@
 
             if (isMatchEnded) {
                 if (matchEndTime === 0 && !isMatchReset) {
-                    matchEndTime = Date.now();
+                    matchEndTime = now;
                     setTimeout(() => { if (latestData) renderScoreboard(latestData); }, 6500); 
                 }
             } else {
                 matchEndTime = 0;
             }
 
-            const showFinalStandings = (isMatchEnded && matchEndTime !== 0 && (Date.now() - matchEndTime >= 6000));
+            const showFinalStandings = (isMatchEnded && matchEndTime !== 0 && (now - matchEndTime >= 6000));
             const elimDurationMs = gifDuration * 1000;
 
             if (aliveTeamsCount <= 4 && !isMatchEnded) {
                 if (top4EntryTime === 0 && !isMatchReset) {
-                    top4EntryTime = Date.now();
+                    top4EntryTime = now;
                     setTimeout(() => { if (latestData) renderScoreboard(latestData); }, elimDurationMs + 100); 
                 }
             }
 
-            const isTop4Period = !isMatchEnded && !showFinalStandings && aliveTeamsCount <= 4 && (isMatchReset || (Date.now() - top4EntryTime >= elimDurationMs));
+            const isTop4Period = !isMatchEnded && !showFinalStandings && aliveTeamsCount <= 4 && (isMatchReset || (now - top4EntryTime >= elimDurationMs));
 
             const matchTop4Teams = data.data.teams.filter(t => t.match_live_rank <= 4).map(t => t.team_name);
 
@@ -581,7 +354,7 @@
                     finalTop4 = aliveTeams.map(t => t.team_name); 
                 }
                 isTop4Locked = true;
-                localStorage.setItem(`pubg_finalTop4_${tourneyId || 'demo'}`, JSON.stringify(finalTop4));
+                localStorage.setItem(`pubg_finalTop4_${tourneyId || 'default'}`, JSON.stringify(finalTop4));
             }
 
             sortedTeams.forEach((team, index) => {
@@ -592,7 +365,7 @@
                     wrapperRow.className = 'team-wrapper';
                     
                     wrapperRow.innerHTML = `
-                        <div class="blue-chip-panel"><img class="blue-chip-icon" src="BLUECHIP.png"></div>
+                        <div class="blue-chip-panel"><img class="blue-chip-icon" src="BLUECHIP.png" onerror="this.style.display='none'"></div>
                         <div class="team-row-inner">
                             <div class="bg-layer"></div>
                             <div class="banner-layer"></div>
@@ -607,7 +380,7 @@
                 let teamIsAlive = false, teamInBlueZone = false, revivedPlayersQueue = [];
                 let dotsHtml = '', playerDetailsHtml = ''; 
 
-                // 🌟 1. ดักการ "กดใช้เครื่อง" จาก Field API (Trigger Open)
+                // ดักการ "กดใช้เครื่อง"
                 let currentBluechipCount = team.useBluechipCount || team.revive_count || team.bluechip_revive || team.revives || 0;
                 
                 if (teamBluechipCounts[team.team_name] === undefined) {
@@ -615,24 +388,15 @@
                 }
 
                 if (currentBluechipCount > teamBluechipCounts[team.team_name]) {
-                    // หน่วงเวลาให้เนียนกับ Broadcast 500ms
-                    setTimeout(() => {
-                        activeRecalls[team.team_name] = true;
-                        
-                        // อัปเดต UI เปิด Panel
-                        const panel = document.getElementById(`team-${team.team_name}`)?.querySelector('.blue-chip-panel');
-                        if(panel) panel.classList.add('active');
-
-                        // Failsafe: เผื่อเกิดไม่สำเร็จ หรือ API ไม่อัปเดต ให้ Panel ปิดเองใน 8 วิ
-                        setTimeout(() => {
-                            activeRecalls[team.team_name] = false;
-                            const panelToClose = document.getElementById(`team-${team.team_name}`)?.querySelector('.blue-chip-panel');
-                            if(panelToClose) panelToClose.classList.remove('active');
-                        }, 8000);
-
-                    }, 500);
-
+                    const diff = currentBluechipCount - teamBluechipCounts[team.team_name];
                     teamBluechipCounts[team.team_name] = currentBluechipCount;
+
+                    for (let i = 0; i < diff; i++) {
+                        const delay = i * 1000; 
+                        setTimeout(() => {
+                            bluechipTimers[team.team_name] = Date.now() + 5000;
+                        }, delay);
+                    }
                 }
 
                 let safeTeamTag = team.team_tag.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
@@ -647,7 +411,9 @@
                     let sortedForTop4List = [...team.players].sort((a, b) => (a.name || '').localeCompare(b.name || ''));
 
                     sortedForDots.forEach(p => {
-                        if (p.isAlive) { 
+                        let isCurrentlyAlive = (p.isAlive === true || p.isAlive === 1 || p.isAlive === "true");
+                        
+                        if (isCurrentlyAlive) { 
                             teamIsAlive = true; 
                             if (p.isInBlueZone || p.is_in_bluezone || p.in_bluezone || p.inBlueZone) teamInBlueZone = true; 
                         }
@@ -655,88 +421,92 @@
                         let rawName = p.name || '';
                         let cleanName = rawName.replace(prefixRegex, '');
 
-                        // 🎯 2. ตรวจจับการ "เกิดสำเร็จ" เปลี่ยนสถานะ DEAD -> ALIVE 
-                        if (!isMatchReset && playerStates[rawName] === false && p.isAlive === true) {
+                        if (!isMatchReset && playerStates[rawName] === false && isCurrentlyAlive) {
                             revivedPlayersQueue.push(cleanName);
                         }
-                        playerStates[rawName] = p.isAlive;
+                        playerStates[rawName] = isCurrentlyAlive;
 
-                        const pulseS = (p.isAlive && p.isGroggy) ? 'knocked-pulse' : '';
-                        const colorS = p.isAlive ? (p.isGroggy ? 'var(--c-tick-knocked)' : 'var(--c-tick-alive)') : 'transparent';
+                        const pulseS = (isCurrentlyAlive && p.isGroggy) ? 'knocked-pulse' : '';
+                        const colorS = isCurrentlyAlive ? (p.isGroggy ? 'var(--c-tick-knocked)' : 'var(--c-tick-alive)') : 'transparent';
                         
-                        const hpPercent = p.isAlive ? (p.isGroggy ? 1 : (typeof p.health === 'number' ? p.health / 100 : 1)) : 0;
+                        const hpPercent = isCurrentlyAlive ? (p.isGroggy ? 1 : (typeof p.health === 'number' ? p.health / 100 : 1)) : 0;
                         dotsHtml += `<div class="alive-bar"><div class="hp-fill-small ${pulseS}" style="transform: scaleY(${hpPercent}); background-color:${colorS};"></div></div>`;
                     });
 
                     sortedForTop4List.forEach(p => {
+                        let isCurrentlyAlive = (p.isAlive === true || p.isAlive === 1 || p.isAlive === "true");
                         let rawName = p.name || '';
                         let cleanName = rawName.replace(prefixRegex, '');
 
-                        const pulseL = (p.isAlive && p.isGroggy) ? 'knocked-pulse' : '';
-                        const colorL = p.isAlive ? (p.isGroggy ? 'var(--c-hp-knocked)' : 'var(--c-hp-alive)') : 'transparent';
+                        const pulseL = (isCurrentlyAlive && p.isGroggy) ? 'knocked-pulse' : '';
+                        const colorL = isCurrentlyAlive ? (p.isGroggy ? 'var(--c-hp-knocked)' : 'var(--c-hp-alive)') : 'transparent';
                         
-                        const hpPercent = p.isAlive ? (p.isGroggy ? 1 : (typeof p.health === 'number' ? p.health / 100 : 1)) : 0;
+                        const hpPercent = isCurrentlyAlive ? (p.isGroggy ? 1 : (typeof p.health === 'number' ? p.health / 100 : 1)) : 0;
                         playerDetailsHtml += `
                             <div class="player-item">
-                                <div class="player-name ${p.isAlive ? '' : 'dead'}">${cleanName}</div>
+                                <div class="player-name ${isCurrentlyAlive ? '' : 'dead'}">${cleanName}</div>
                                 <div class="player-hp-bar"><div class="player-hp-fill ${pulseL}" style="transform: scaleX(${hpPercent}); background-color:${colorL};"></div></div>
                             </div>`;
                     });
                 }
 
-                // 🌟 ระบบโชว์ป้าย Bluechip Recall แท้ (Trigger Close เมื่อมีผู้เล่นเกิด)
+                // โชว์ป้ายคนเกิด
                 if (revivedPlayersQueue.length > 0 && !isMatchReset) {
-                    // ปิด Panel ທันที เมื่อผู้เล่นเกิด
-                    activeRecalls[team.team_name] = false;
-                    const panel = wrapperRow.querySelector('.blue-chip-panel');
-                    if(panel) panel.classList.remove('active');
-
+                    bluechipTimers[team.team_name] = 0;
                     currentTeamsEliminated[team.team_name] = false; 
+
                     revivedPlayersQueue.forEach((playerName, idx) => {
                         setTimeout(() => {
-                            const cacheBuster = Date.now() + idx;
                             const bannerHtml = document.createElement('div');
                             bannerHtml.className = 'revived-banner animate';
-                            bannerHtml.style.backgroundImage = `url('REVIVED.png?t=${cacheBuster}')`;
-                            bannerHtml.innerHTML = `<span class="revived-text">REVIVED: ${playerName}</span>`;
+                            bannerHtml.style.backgroundImage = `url('REVIVED.png')`;
+                            // 🟢 ถอด text-shadow ออกแล้ว
+                            bannerHtml.innerHTML = `<span style="font-weight:bold; font-size:18px; color:#ffffff;">REVIVED: ${playerName}</span>`;
+                            
                             innerRow.querySelector('.banner-layer').appendChild(bannerHtml);
                             setTimeout(() => { bannerHtml.remove(); }, 4050);
                         }, idx * 4200);
                     });
                 }
 
-                // ซิงค์สถานะ Panel ป้องกัน UI ค้างเวลา Element ถูกสร้างใหม่
+                // ควบคุม UI Panel ขวา
                 const bcPanel = wrapperRow.querySelector('.blue-chip-panel');
                 if (bcPanel) {
-                    if (activeRecalls[team.team_name] && teamIsAlive) {
+                    if (bluechipTimers[team.team_name] && now < bluechipTimers[team.team_name] && teamIsAlive) {
                         bcPanel.classList.add('active');
                     } else {
                         bcPanel.classList.remove('active');
                     }
                 }
 
+                // 🌟 ระบบตรวจจับตายยกตี้ (ELIMINATED) - ปรับให้ทำงานทุกครั้งที่โหลด (F5) สำหรับทีมที่ตายแล้ว
                 if (!teamIsAlive && !currentTeamsEliminated[team.team_name]) {
                     currentTeamsEliminated[team.team_name] = true;
-                    teamEliminatedTime[team.team_name] = isFirstRender ? 0 : Date.now(); 
+                    // บันทึกเวลาปัจจุบันเสมอ เพื่อให้เงื่อนไขขยาย Row และเล่นแอนิเมชันทำงาน
+                    teamEliminatedTime[team.team_name] = now; 
                     
                     if (finalTop4.includes(team.team_name) && !top4EliminationOrder.includes(team.team_name)) {
                         top4EliminationOrder.push(team.team_name);
-                        localStorage.setItem(`pubg_top4Order_${tourneyId || 'demo'}`, JSON.stringify(top4EliminationOrder));
+                        localStorage.setItem(`pubg_top4Order_${tourneyId || 'default'}`, JSON.stringify(top4EliminationOrder));
                     }
-                }
 
-                if (!teamIsAlive && currentTeamsEliminated[team.team_name] && teamEliminatedTime[team.team_name] !== 0 && (Date.now() - teamEliminatedTime[team.team_name] < 300)) {
-                    const cacheBuster = Date.now();
-                    const bannerClass = useGifMode ? 'eliminated-banner gif-mode animate' : 'eliminated-banner default-mode animate';
-                    const bannerText = useGifMode ? '' : '>> ELIMINATED <<';
-                    const inlineStyle = useGifMode ? `style="background-image: url('${LOCAL_LOGO_PATH}ELIMINATED.gif?t=${cacheBuster}');"` : '';
+                    // 🟢 โชว์ป้าย ELIMINATED ทันที (ลบเงื่อนไข !isFirstRender ออก เพื่อให้แสดงตอน F5 ด้วย)
+                    const cacheBuster = now;
+                    const bannerHtml = document.createElement('div');
+                    bannerHtml.className = useGifMode ? 'eliminated-banner gif-mode animate' : 'eliminated-banner default-mode animate';
                     
-                    innerRow.querySelector('.banner-layer').innerHTML = `<div class="${bannerClass}" ${inlineStyle}>${bannerText}</div>`;
-                    setTimeout(() => { if(innerRow.querySelector('.eliminated-banner')) innerRow.querySelector('.eliminated-banner').remove(); }, elimDurationMs + 50);
+                    if (useGifMode) {
+                        bannerHtml.style.backgroundImage = `url('${LOCAL_LOGO_PATH}ELIMINATED.gif?t=${cacheBuster}')`;
+                    } else {
+                        bannerHtml.innerHTML = `<span style="font-weight:bold;">>> ELIMINATED <<</span>`;
+                    }
+                    
+                    innerRow.querySelector('.banner-layer').appendChild(bannerHtml);
+                    setTimeout(() => { bannerHtml.remove(); }, elimDurationMs + 50);
                 }
 
                 let expansionClass = 'collapsed', visibilityClass = ''; 
-                const timeSinceDeath = Date.now() - (teamEliminatedTime[team.team_name] || 0);
+                const timeSinceDeath = now - (teamEliminatedTime[team.team_name] || 0);
                 const isTop4Member = finalTop4.includes(team.team_name);
 
                 if (showFinalStandings) {
@@ -756,7 +526,7 @@
                                 expansionClass = 'expanded';
                             } else {
                                 const delay = (elimIndex + 1) * elimDurationMs; 
-                                if (Date.now() - teamEliminatedTime[team.team_name] > delay && teamEliminatedTime[team.team_name] !== 0) {
+                                if (now - teamEliminatedTime[team.team_name] > delay && teamEliminatedTime[team.team_name] !== 0) {
                                     expansionClass = 'collapsed';
                                 } else {
                                     expansionClass = 'expanded';
@@ -842,7 +612,7 @@
             }
         }
 
-        if (!tourneyId && !isDemoMode) {
+        if (!tourneyId) {
             document.getElementById('error-msg').style.display = 'block';
         } else {
             document.getElementById('main-scoreboard').style.display = 'block';
@@ -869,14 +639,9 @@
                 document.documentElement.style.setProperty('--gif-duration', `${gifDuration}s`);
             }
 
-            if (isDemoMode) {
-                document.getElementById('demo-badge').style.display = 'block';
-                runDemoSimulator(); 
-            } else {
-                API_URL = `https://domestic.atum.live/api/pubg/liveleaderboard?account_id=nttapon7799&series=${tourneyId}&tournament_id=${tourneyId}&mode=post&all_teams=true`;
-                fetchRealTimeData();
-                setInterval(fetchRealTimeData, 1000); 
-            }
+            API_URL = `https://domestic.atum.live/api/pubg/liveleaderboard?account_id=nttapon7799&series=${tourneyId}&tournament_id=${tourneyId}&mode=post&all_teams=true`;
+            fetchRealTimeData();
+            setInterval(fetchRealTimeData, 1000); 
         }
     </script>
 </body>
