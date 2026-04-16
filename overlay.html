@@ -53,7 +53,7 @@
         }
         .team-wrapper.is-moving { z-index: 10; }
         
-        /* 🟢 1. ถอด position: absolute ออก ป้องกัน Layout พังเวลามี FLIP animation */
+        /* 🟢 ห้ามใช้ display: none ตอน animation */
         .team-wrapper.hidden-top4 { 
             opacity: 0;
             transform: scale(0.95) translateZ(0);
@@ -74,7 +74,6 @@
             will-change: max-height, opacity;
         }
 
-        /* 💡 นำค่า Opacity มาใช้งานตรงนี้ */
         .bg-layer {
             position: absolute; top: 0; left: 0; width: 100%; height: 100%; z-index: 0;
             background-color: var(--c-team-bg-alive);
@@ -100,10 +99,9 @@
             100% { filter: brightness(1); } 
         }
         
-        /* 🟢 จัดการป้ายบลูชิปให้สไลด์แอบหลังตารางไปทางขวา */
         .blue-chip-panel {
             position: absolute;
-            right: -38px; /* เอาไปวางไว้นอกขอบขวา */
+            right: -38px; 
             top: 0;
             width: 38px; 
             height: 32px; 
@@ -111,9 +109,9 @@
             display: flex;
             align-items: center;
             justify-content: center;
-            z-index: 1; /* ให้อยู่ข้างหลังทีม (.team-row-inner มี z-index: 2) */
+            z-index: 1; 
             opacity: 0;
-            transform: translate3d(-100%, 0, 0); /* ตอนซ่อนให้หดกลับมาแอบใต้ตาราง */
+            transform: translate3d(-100%, 0, 0); 
             pointer-events: none;
             transition: transform 0.5s cubic-bezier(0.25, 0.8, 0.25, 1), opacity 0.3s ease;
             will-change: transform, opacity;
@@ -121,7 +119,7 @@
 
         .blue-chip-panel.active {
             opacity: 1;
-            transform: translate3d(0, 0, 0); /* สไลด์เด้งโผล่ออกมาด้านขวาเต็มใบ */
+            transform: translate3d(0, 0, 0); 
             animation: bluechip-glow 1.5s infinite ease-in-out;
         }
 
@@ -146,7 +144,6 @@
         .team-logo { width: 28px; height: 28px; margin-right: 8px; object-fit: contain; background-color: transparent; flex-shrink: 0; transform: translateZ(0); }
         .team-name { font-size: 20px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; line-height: 1; }
 
-        /* 🟢 เปลี่ยน HP เป็น transform scaleY */
         .alive-bar { position: relative; width: 6px; height: 18px; border-radius: 1px; border: 1px solid #000000; box-sizing: border-box; background-color: #111111; overflow: hidden; transform: translateZ(0); }
         .hp-fill-small { 
             position: absolute; bottom: 0; left: 0; width: 100%; 
@@ -162,7 +159,6 @@
         .player-name { font-size: 15px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; color: var(--c-team-text-alive); }
         .player-name.dead { color: var(--c-team-text-dead); opacity: 0.7; }
         
-        /* 🟢 Player HP bar ใช้ scaleX */
         .player-hp-bar { height: 10px; background-color: #444; border: 1px solid #000; position: relative; overflow: hidden; transform: translateZ(0); }
         .player-hp-fill { 
             height: 100%; 
@@ -278,7 +274,6 @@
 
         let matchEndTime = 0;
 
-        // 🌟 โหลด State ของ Top4 จาก localStorage ตอนเปิดหน้าเว็บ (กัน F5)
         try {
             const savedTop4 = JSON.parse(localStorage.getItem(`pubg_finalTop4_${tourneyId || 'demo'}`) || "[]");
             const savedOrder = JSON.parse(localStorage.getItem(`pubg_top4Order_${tourneyId || 'demo'}`) || "[]");
@@ -292,7 +287,17 @@
         // 🌟 ADVANCED DEMO SIMULATOR 🌟
         function runDemoSimulator() {
             let d = { data: { teams: [] } };
-            const demoTeams = ["TTB","R3ZO","BN","KTC","R1","DWG","LK","SUP","JKD","BLS","EXOS","FUX","ML","SV","WHY","BABY"];
+            // 🟢 อิงรายชื่อทีมและ Tag จากโครงสร้าง API จริง 
+            const realTeams = [
+                {name: "Team Falcons", tag: "FLC"}, {name: "17 Gaming", tag: "17"},
+                {name: "Four Angry Men", tag: "4AM"}, {name: "Anyone's Legend", tag: "AL"},
+                {name: "Baegopa", tag: "BGP"}, {name: "DN FREECS", tag: "DNF"},
+                {name: "eArena", tag: "EA"}, {name: "FURIA", tag: "FUR"},
+                {name: "FW Esports", tag: "FW"}, {name: "Gen.G", tag: "GEN"},
+                {name: "JDG Esports", tag: "JDG"}, {name: "Natus Vincere", tag: "NAVI"},
+                {name: "Petrichor Road", tag: "PeRo"}, {name: "T1", tag: "T1"},
+                {name: "The Expendables", tag: "TE"}, {name: "Twisted Minds", tag: "TWIS"}
+            ];
 
             let phase = "early"; 
             let top4StartTime = 0;
@@ -305,14 +310,20 @@
             function initDemoData() {
                 d.data.teams = [];
                 for (let i = 0; i < 16; i++) {
+                    // โครงสร้างจำลองให้เหมือน Official API Response
                     d.data.teams.push({
-                        team_name: demoTeams[i],
+                        team_name: realTeams[i].name,
+                        team_tag: realTeams[i].tag,
                         total_pts_rank: i + 1,
-                        total_pts_with_penalty: 0,
+                        total_pts_with_penalty: Math.floor(Math.random() * 15), // แต้มเริ่มต้น
                         match_kills: 0,
+                        kill_pts: 0,
+                        place_pts: 0,
                         useBluechipCount: 0,
+                        elimination: false,
+                        match_live_rank: 16,
                         players: [1,2,3,4].map(n => ({
-                            name: demoTeams[i]+"_P"+n,
+                            name: `${realTeams[i].tag}_Player${n}`,
                             isAlive: true,
                             health: 100,
                             isGroggy: false,
@@ -320,6 +331,9 @@
                         }))
                     });
                 }
+                // เรียงลำดับแต้มเริ่มต้นให้สมจริง
+                d.data.teams.sort((a, b) => b.total_pts_with_penalty - a.total_pts_with_penalty);
+                d.data.teams.forEach((t, i) => t.total_pts_rank = i + 1);
             }
 
             function getAliveTeams() {
@@ -327,28 +341,63 @@
             }
 
             function randomKill(team) {
-                const alive = team.players.filter(p => p.isAlive);
+                // กรองหาคนที่ยังมีชีวิตอยู่
+                let alive = team.players.filter(p => p.isAlive);
                 if (alive.length === 0) return;
 
+                // 🟢 สมจริง: ถ้าคนยังไม่ล้ม ให้ล้มก่อน ถ้าล้มอยู่แล้วให้ตาย
                 const victim = alive[Math.floor(Math.random() * alive.length)];
-                victim.isAlive = false;
-                victim.health = 0;
-                victim.isGroggy = false;
+                
+                if (!victim.isGroggy && alive.length > 1) {
+                    // ล้ม (Knocked)
+                    victim.isGroggy = true;
+                    victim.health = Math.random() * 20; // เลือดเหลือน้อย
+                } else {
+                    // ตาย (Eliminated)
+                    victim.isAlive = false;
+                    victim.health = 0;
+                    victim.isGroggy = false;
+                }
+                
+                // ตรวจสอบว่าตายยกทีมหรือยัง
+                alive = team.players.filter(p => p.isAlive);
+                if (alive.length === 0 || alive.every(p => p.isGroggy)) {
+                    // ถ้าโดนน็อคหมดทุกคน ถือว่าทีมแตก ให้ตายทั้งหมด
+                    team.players.forEach(p => {
+                        p.isAlive = false;
+                        p.health = 0;
+                        p.isGroggy = false;
+                    });
+                }
             }
 
             function randomDamage(team) {
                 team.players.forEach(p => {
-                    if (p.isAlive) {
-                        let dmg = Math.random() * 30;
+                    if (p.isAlive && !p.isGroggy) {
+                        let dmg = Math.random() * 25;
                         p.health -= dmg;
 
                         if (p.health <= 0) {
+                            // เช็คว่ามีเพื่อนรอดไหม ถ้ามีให้ล้ม ถ้าไม่มีให้ตาย
+                            const hasStandingTeammate = team.players.some(op => op.isAlive && !op.isGroggy && op.name !== p.name);
+                            if (hasStandingTeammate) {
+                                p.isGroggy = true;
+                                p.health = 15;
+                            } else {
+                                p.isAlive = false;
+                                p.health = 0;
+                                p.isGroggy = false;
+                            }
+                        } else if (p.health < 30) {
+                            // เลือดเหลือน้อยมาก ถือว่าอาการหนักแต่ยังไม่ล้ม
+                            // แค่หลอดจะสั้นลง
+                        }
+                    } else if (p.isGroggy) {
+                        // เลือดไหลตอนล้ม
+                        p.health -= Math.random() * 5;
+                        if (p.health <= 0) {
                             p.isAlive = false;
                             p.health = 0;
-                            p.isGroggy = false;
-                        } else if (p.health < 30) {
-                            p.isGroggy = true;
-                        } else {
                             p.isGroggy = false;
                         }
                     }
@@ -407,9 +456,9 @@
                 aliveTeams.forEach(team => {
                     if (phase === "top4") {
                         team.players.forEach(p => {
-                            if (p.isAlive) {
+                            if (p.isAlive && !p.isGroggy) {
                                 p.health -= Math.random() * 5;
-                                if (p.health < 0) p.health = 1; 
+                                if (p.health < 5) p.health = 5; // ไม่ยอมให้ล้มเองจากวง
                             }
                         });
                     } else {
@@ -436,6 +485,7 @@
                         const randomKillerTeam = allTeams[Math.floor(Math.random() * allTeams.length)];
                         if(randomKillerTeam.players.some(p=>p.isAlive)) {
                             randomKillerTeam.match_kills += 1;
+                            randomKillerTeam.kill_pts += 1;
                             randomKillerTeam.total_pts_with_penalty += 1;
                         }
                     }
@@ -444,13 +494,26 @@
                         p.isInBlueZone = Math.random() < 0.15;
                     });
 
+                    // ชุบชีวิต
                     if ((phase === "early" || phase === "mid") && Math.random() < 0.08 && team.players.some(p => !p.isAlive)) {
                         const dead = team.players.find(p => !p.isAlive);
                         if (dead) {
                             dead.isAlive = true;
                             dead.health = 100;
+                            dead.isGroggy = false;
                             team.useBluechipCount++;
                         }
+                    }
+                });
+
+                // 🟢 อัปเดตสถานะให้เป๊ะตาม API
+                d.data.teams.forEach(t => {
+                    const isAlive = t.players.some(p => p.isAlive);
+                    if (!isAlive && !t.elimination) {
+                        t.elimination = true;
+                        t.match_live_rank = aliveCount + 1; // ล็อกอันดับตอนตาย
+                    } else if (isAlive) {
+                        t.match_live_rank = aliveCount;
                     }
                 });
 
@@ -470,14 +533,14 @@
             if (!data || !data.data || !data.data.teams) return;
             latestData = data; 
 
-            // 🟢 4. ปรับเงื่อนไขการเช็ค Match Reset ให้แม่นยำขึ้น
-            const aliveTeamsCountCheck = data.data.teams.filter(t => t.players && t.players.some(p => p.isAlive)).length;
+            // เช็ค Match Reset
+            const aliveTeamsCountCheck = data.data.teams.filter(t => t.elimination === false || (t.players && t.players.some(p => p.isAlive))).length;
             let isMatchReset = false;
             
-            // เช็คจากจำนวนทีมที่รอดชีวิต ถ้าเยอะผิดปกติ (>=14) แสดงว่าเริ่มเกมใหม่แน่นอน
             if (aliveTeamsCountCheck >= 14 || isFirstRender) {
                 isMatchReset = true;
             }
+            previousAliveCount = aliveTeamsCountCheck;
 
             if (isMatchReset) {
                 matchEndTime = 0;
@@ -485,7 +548,6 @@
                 teamBluechipCounts = {};
                 activeRecalls = {};
                 
-                // ล้างความจำของเก่า
                 finalTop4 = [];
                 top4EliminationOrder = [];
                 isTop4Locked = false;
@@ -498,7 +560,7 @@
             scoreboard.querySelectorAll('.team-wrapper').forEach(row => { oldPositions[row.id] = row.getBoundingClientRect().top; });
 
             const sortedTeams = data.data.teams.sort((a, b) => a.total_pts_rank - b.total_pts_rank);
-            const aliveTeams = sortedTeams.filter(t => t.players && t.players.some(p => p.isAlive));
+            const aliveTeams = sortedTeams.filter(t => t.elimination === false || (t.players && t.players.some(p => p.isAlive)));
             const aliveTeamsCount = aliveTeams.length;
             const isMatchEnded = aliveTeamsCount <= 1; 
 
@@ -523,14 +585,18 @@
 
             const isTop4Period = !isMatchEnded && !showFinalStandings && aliveTeamsCount <= 4 && (isMatchReset || (Date.now() - top4EntryTime >= elimDurationMs));
 
-            // 🌟 1. ล็อค Top 4 จากทีมที่มีชีวิตเท่านั้น
-            if (aliveTeamsCount === 4 && !isTop4Locked && !isMatchReset) {
-                finalTop4 = aliveTeams.map(t => t.team_name); 
-                isTop4Locked = true;
-                top4EliminationOrder = []; // รีเซ็ตลำดับการตาย
+            // ล็อค Top 4 จาก match_live_rank (อิงตาม API แบบ 100%)
+            const matchTop4Teams = data.data.teams.filter(t => t.match_live_rank <= 4).map(t => t.team_name);
 
+            if (aliveTeamsCount <= 4 && !isMatchReset) {
+                if (matchTop4Teams.length > 0) {
+                    finalTop4 = matchTop4Teams; 
+                } else if (!isTop4Locked && aliveTeamsCount > 0) {
+                    finalTop4 = aliveTeams.map(t => t.team_name); 
+                }
+                isTop4Locked = true;
                 localStorage.setItem(`pubg_finalTop4_${tourneyId || 'demo'}`, JSON.stringify(finalTop4));
-            } 
+            }
 
             sortedTeams.forEach((team, index) => {
                 let wrapperRow = document.getElementById(`team-${team.team_name}`);
@@ -566,6 +632,10 @@
                     teamBluechipCounts[team.team_name] = currentBluechipCount; 
                 }
 
+                // การดึงทีม Tag ออกจากชื่อผู้เล่น
+                let safeTeamTag = team.team_tag.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+                let prefixRegex = new RegExp('^' + safeTeamTag + '[_\\-\\s]?', 'i');
+
                 if (team.players) {
                     let sortedForDots = [...team.players].sort((a, b) => {
                         if (a.isAlive !== b.isAlive) return a.isAlive ? -1 : 1; 
@@ -581,8 +651,6 @@
                         }
 
                         let rawName = p.name || '';
-                        let safeTeamName = team.team_name.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-                        let prefixRegex = new RegExp('^' + safeTeamName + '[_\\-\\s]?', 'i');
                         let cleanName = rawName.replace(prefixRegex, '');
 
                         if (!isMatchReset && playerStates[rawName] === false && p.isAlive === true) {
@@ -599,8 +667,6 @@
 
                     sortedForTop4List.forEach(p => {
                         let rawName = p.name || '';
-                        let safeTeamName = team.team_name.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-                        let prefixRegex = new RegExp('^' + safeTeamName + '[_\\-\\s]?', 'i');
                         let cleanName = rawName.replace(prefixRegex, '');
 
                         const pulseL = (p.isAlive && p.isGroggy) ? 'knocked-pulse' : '';
@@ -628,7 +694,6 @@
                     }
                 }
 
-                // 🌟 3. บันทึกลำดับการตาย (กัน Push ซ้ำ)
                 if (!teamIsAlive && finalTop4.includes(team.team_name) && !currentTeamsEliminated[team.team_name]) {
                     currentTeamsEliminated[team.team_name] = true;
                     teamEliminatedTime[team.team_name] = isFirstRender ? 0 : Date.now(); 
@@ -639,7 +704,6 @@
                     }
                 }
 
-                // 🟢 5. ขยาย Window เป็น 300ms ป้องกันแบนเนอร์ไม่ยอมโชว์เวลา OBS กระตุก
                 if (!teamIsAlive && currentTeamsEliminated[team.team_name] && teamEliminatedTime[team.team_name] !== 0 && (Date.now() - teamEliminatedTime[team.team_name] < 300)) {
                     const cacheBuster = Date.now();
                     const bannerClass = useGifMode ? 'eliminated-banner gif-mode animate' : 'eliminated-banner default-mode animate';
@@ -666,28 +730,26 @@
                 }
 
                 let expansionClass = 'collapsed', visibilityClass = ''; 
-                
-                // 🌟 4. Logic “พับทีละทีมแบบ PGS”
+                const timeSinceDeath = Date.now() - (teamEliminatedTime[team.team_name] || 0);
+                const isTop4Member = finalTop4.includes(team.team_name);
+
                 if (showFinalStandings) {
                     expansionClass = 'collapsed';
-                } else if (isMatchEnded && !isTop4Locked) {
-                    if (teamIsAlive) expansionClass = 'expanded';
+                } else if (isMatchEnded) {
+                    if (isTop4Member || finalTop4.length === 0) expansionClass = teamIsAlive ? 'expanded' : 'collapsed';
                     else visibilityClass = 'hidden-top4';
-                } else if (isTop4Locked) {
-                    if (!finalTop4.includes(team.team_name)) {
+                } else if (isTop4Period || isTop4Locked) { 
+                    if (!isTop4Member) {
                         visibilityClass = 'hidden-top4';
                     } else {
-                        const elimIndex = top4EliminationOrder.indexOf(team.team_name);
-
                         if (teamIsAlive) {
-                            expansionClass = 'expanded'; // ยังไม่ตาย
+                            expansionClass = 'expanded';
                         } else {
+                            const elimIndex = top4EliminationOrder.indexOf(team.team_name);
                             if (elimIndex === -1) {
                                 expansionClass = 'expanded';
                             } else {
-                                // 🟢 2. ปรับสูตรคำนวณ Delay (4s -> 8s -> 12s)
                                 const delay = (elimIndex + 1) * elimDurationMs; 
-
                                 if (Date.now() - teamEliminatedTime[team.team_name] > delay && teamEliminatedTime[team.team_name] !== 0) {
                                     expansionClass = 'collapsed';
                                 } else {
@@ -711,12 +773,13 @@
                 
                 const rowWrapper = innerRow.querySelector('.row-grid-wrapper');
                 
+                // 🟢 ใช้ team_tag ตาม API จริงในการดึงโลโก้ทีม (เปลี่ยนจาก team.team_name)
                 if (!rowWrapper.querySelector('.row-grid')) {
-                    const logoSrc = `${LOCAL_LOGO_PATH}${team.team_name}.png`;
+                    const logoSrc = `${LOCAL_LOGO_PATH}${team.team_tag}.png`; 
                     rowWrapper.innerHTML = `
                         <div class="row-grid">
                             <div class="col-rank">${index + 1}</div>
-                            <div class="col-team"><img class="team-logo" src="${logoSrc}" onerror="this.style.visibility='hidden'"><div class="team-name">${team.team_name}</div></div>
+                            <div class="col-team"><img class="team-logo" src="${logoSrc}" onerror="this.style.visibility='hidden'"><div class="team-name">${team.team_tag}</div></div>
                             <div class="col-alive">${dotsHtml}</div>
                             <div class="col-pts">${team.total_pts_with_penalty}</div>
                             <div class="col-kills">${team.match_kills}</div>
@@ -745,7 +808,6 @@
                             wrapperRow.style.transform = `translate3d(0, ${deltaY}px, 0)`;
                             wrapperRow.classList.add('is-moving'); 
                             
-                            // 🟢 6. ใช้ getComputedStyle แทน offsetHeight ป้องกัน FLIP กระตุก
                             getComputedStyle(wrapperRow).transform;
 
                             requestAnimationFrame(() => {
