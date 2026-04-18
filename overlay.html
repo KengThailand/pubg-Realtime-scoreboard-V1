@@ -217,24 +217,23 @@
             will-change: transform;
         }
         
-        /* 🟢 CSS Animation แบบ Sync เวลาทั้งจอ (ไม่ต้องใช้ JS นับเวลา) */
-        @keyframes bluezone-pulse { 
-            0%, 100% { opacity: 0; } 
-            50% { opacity: 1; } 
-        }
-
-        /* 🟢 ใช้วิธีวาง Overlay ซ้อนทับและใช้ Animation เดียวกันทั้งหมด มันจะกระพริบพร้อมกันเป๊ะๆ */
-        .team-row-inner.in-bluezone::before { 
+        /* 🟢 CSS Animation สำหรับ Bluezone (ทำงานพร้อมกันผ่าน Global JS) */
+        .team-row-inner.in-bluezone .bg-layer::after { 
             content: ''; 
             position: absolute; 
             top: 0; 
             left: 0; 
             right: 0; 
             height: 32px; 
-            background-color: rgba(0, 150, 255, 0.4);
+            background-color: rgba(0, 150, 255, 0);
+            transition: background-color 0.75s ease-in-out;
             z-index: 1; 
             pointer-events: none; 
-            animation: bluezone-pulse 1.5s infinite ease-in-out;
+        }
+
+        /* เมื่อ JS เติม Class นี้ จะทำให้พื้นหลังเป็นสีฟ้า (กระพริบ) */
+        .scoreboard-container.global-bluezone-flash .team-row-inner.in-bluezone .bg-layer::after {
+            background-color: rgba(0, 150, 255, 0.4);
         }
 
         @keyframes pulse-knocked {
@@ -255,7 +254,7 @@
     <div id="error-msg">กรุณาระบุ Tournament ID ผ่านการเจนลิงก์จากหน้า Control Panel (index.html) ก่อนนำมาใส่ใน OBS ครับ</div>
 
     <div id="main-scoreboard" style="display: none;">
-        <div class="scoreboard-container">
+        <div class="scoreboard-container" id="main-container">
             <div class="row-grid header-row">
                 <div class="col-rank">#</div><div class="col-team">TEAM</div><div class="col-alive">ALIVE</div><div class="col-pts">PTS</div><div class="col-kills">KILLS</div>
             </div>
@@ -286,7 +285,7 @@
         let previousAliveCount = 0; 
         
         let teamBluechipCounts = {};
-        // เก็บสถานะ ว่ามีคนกำลังรอฟื้นไหม (true/false) 
+        // 🟢 เก็บสถานะ ว่ามีคนกำลังรอฟื้นไหม (true/false) 
         let isWaitingForRevive = {}; 
         let matchEndTime = 0;
 
@@ -300,6 +299,14 @@
                 top4EliminationOrder = savedOrder;
             }
         } catch(e) {}
+
+        // 🟢 ระบบควบคุมแอนิเมชัน Bluezone ให้กระพริบพร้อมกันทั้งจอ (Global Sync)
+        setInterval(() => {
+            const container = document.getElementById('main-container');
+            if(container) {
+                container.classList.toggle('global-bluezone-flash');
+            }
+        }, 750); 
 
         function renderScoreboard(data) {
             if (!data || !data.data || !data.data.teams) return;
@@ -407,7 +414,7 @@
 
                 if (currentBluechipCount > teamBluechipCounts[team.team_name]) {
                     teamBluechipCounts[team.team_name] = currentBluechipCount;
-                    // โชว์ค้างไปเลย ไม่มีวันหมดอายุ
+                    // 🟢 เมื่อมีการกดใช้เครื่อง ให้เซ็ตค่าเป็น true โชว์ค้างไปเลย ไม่มีวันหมดอายุ
                     isWaitingForRevive[team.team_name] = true;
                 }
 
@@ -465,7 +472,7 @@
 
                 // โชว์ป้ายคนเกิด
                 if (revivedPlayersQueue.length > 0 && !isMatchReset) {
-                    // เมื่อผู้เล่นเกิดแล้ว ให้ยกเลิกการรอชุบ (หด Panel ทันที)
+                    // 🟢 เมื่อผู้เล่นเกิดแล้ว ให้ยกเลิกการรอชุบ (หด Panel ทันที)
                     isWaitingForRevive[team.team_name] = false;
                     currentTeamsEliminated[team.team_name] = false; 
 
@@ -482,7 +489,7 @@
                     });
                 }
 
-                // ควบคุม UI Panel ขวา แบบสถานะรอ
+                // 🟢 ควบคุม UI Panel ขวา แบบสถานะรอ
                 const bcPanel = wrapperRow.querySelector('.blue-chip-panel');
                 if (bcPanel) {
                     // โชว์เมื่อกำลังรอชุบ (isWaitingForRevive เป็น true) และทีมยังไม่ตายหมดตี้
@@ -493,7 +500,7 @@
                     }
                 }
 
-                // ระบบตรวจจับตายยกตี้ (ELIMINATED)
+                // 🌟 ระบบตรวจจับตายยกตี้ (ELIMINATED) - 🟢 บังคับแสดงผลทันทีเมื่อโหลดหน้าเว็บ
                 if (!teamIsAlive && !currentTeamsEliminated[team.team_name]) {
                     currentTeamsEliminated[team.team_name] = true;
                     teamEliminatedTime[team.team_name] = (isFirstRender || isMatchReset) ? 0 : now; 
@@ -506,7 +513,7 @@
                         localStorage.setItem(`pubg_top4Order_${tourneyId || 'default'}`, JSON.stringify(top4EliminationOrder));
                     }
 
-                    // โชว์ป้าย ELIMINATED ทันที (ตอน F5 ก็จะแสดงด้วย)
+                    // 🟢 โชว์ป้าย ELIMINATED ทันที (ลบเงื่อนไข !isFirstRender ออก เพื่อให้แสดงตอน F5 ด้วย)
                     const cacheBuster = now;
                     const bannerHtml = document.createElement('div');
                     bannerHtml.className = useGifMode ? 'eliminated-banner gif-mode animate' : 'eliminated-banner default-mode animate';
@@ -554,7 +561,7 @@
 
                 const themeClass = index === 0 ? 'first-place' : 'normal-place';
                 
-                // กำหนด Class Bluezone
+                // 🟢 กำหนด Class Bluezone ให้ทำงานร่วมกับ Global Sync
                 if (teamInBlueZone && teamIsAlive) {
                     if (!innerRow.classList.contains('in-bluezone')) {
                         innerRow.classList.add('in-bluezone');
