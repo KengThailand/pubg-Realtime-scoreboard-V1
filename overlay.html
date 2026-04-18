@@ -217,23 +217,24 @@
             will-change: transform;
         }
         
-        /* 🟢 CSS Animation สำหรับ Bluezone (ให้ทำงานพร้อมกันผ่าน JS) */
-        .team-row-inner.in-bluezone .bg-layer::after { 
+        /* 🟢 CSS Animation แบบ Sync เวลาทั้งจอ (ไม่ต้องใช้ JS นับเวลา) */
+        @keyframes bluezone-pulse { 
+            0%, 100% { opacity: 0; } 
+            50% { opacity: 1; } 
+        }
+
+        /* 🟢 ใช้วิธีวาง Overlay ซ้อนทับและใช้ Animation เดียวกันทั้งหมด มันจะกระพริบพร้อมกันเป๊ะๆ */
+        .team-row-inner.in-bluezone::before { 
             content: ''; 
             position: absolute; 
             top: 0; 
             left: 0; 
             right: 0; 
             height: 32px; 
-            background-color: rgba(0, 150, 255, 0);
-            transition: background-color 0.75s ease-in-out;
+            background-color: rgba(0, 150, 255, 0.4);
             z-index: 1; 
             pointer-events: none; 
-        }
-
-        /* คลาสที่จะถูก JS สลับไปมา (Toggle) ทุกตารางพร้อมกัน */
-        .team-row-inner.in-bluezone.flash-active .bg-layer::after {
-            background-color: rgba(0, 150, 255, 0.4);
+            animation: bluezone-pulse 1.5s infinite ease-in-out;
         }
 
         @keyframes pulse-knocked {
@@ -285,7 +286,7 @@
         let previousAliveCount = 0; 
         
         let teamBluechipCounts = {};
-        // 🟢 เก็บสถานะ ว่ามีคนกำลังรอฟื้นไหม (true/false) 
+        // เก็บสถานะ ว่ามีคนกำลังรอฟื้นไหม (true/false) 
         let isWaitingForRevive = {}; 
         let matchEndTime = 0;
 
@@ -299,12 +300,6 @@
                 top4EliminationOrder = savedOrder;
             }
         } catch(e) {}
-
-        // 🟢 ระบบควบคุมแอนิเมชัน Bluezone ให้กระพริบพร้อมกันทั้งจอ
-        setInterval(() => {
-            const rows = document.querySelectorAll('.team-row-inner.in-bluezone');
-            rows.forEach(row => row.classList.toggle('flash-active'));
-        }, 750); 
 
         function renderScoreboard(data) {
             if (!data || !data.data || !data.data.teams) return;
@@ -412,7 +407,7 @@
 
                 if (currentBluechipCount > teamBluechipCounts[team.team_name]) {
                     teamBluechipCounts[team.team_name] = currentBluechipCount;
-                    // เมื่อมีการกดใช้เครื่อง ให้เซ็ตค่าเป็น true โชว์ค้างไปเลย ไม่มีวันหมดอายุ
+                    // โชว์ค้างไปเลย ไม่มีวันหมดอายุ
                     isWaitingForRevive[team.team_name] = true;
                 }
 
@@ -498,7 +493,7 @@
                     }
                 }
 
-                // 🌟 ระบบตรวจจับตายยกตี้ (ELIMINATED) - 🟢 บังคับแสดงผลทันทีเมื่อโหลดหน้าเว็บ
+                // ระบบตรวจจับตายยกตี้ (ELIMINATED)
                 if (!teamIsAlive && !currentTeamsEliminated[team.team_name]) {
                     currentTeamsEliminated[team.team_name] = true;
                     teamEliminatedTime[team.team_name] = (isFirstRender || isMatchReset) ? 0 : now; 
@@ -511,7 +506,7 @@
                         localStorage.setItem(`pubg_top4Order_${tourneyId || 'default'}`, JSON.stringify(top4EliminationOrder));
                     }
 
-                    // 🟢 โชว์ป้ายแอนิเมชัน ทุกครั้งที่มีการตาย (ลบเงื่อนไขกัน F5 ทิ้งแล้ว)
+                    // โชว์ป้าย ELIMINATED ทันที (ตอน F5 ก็จะแสดงด้วย)
                     const cacheBuster = now;
                     const bannerHtml = document.createElement('div');
                     bannerHtml.className = useGifMode ? 'eliminated-banner gif-mode animate' : 'eliminated-banner default-mode animate';
@@ -566,7 +561,6 @@
                     }
                 } else {
                     innerRow.classList.remove('in-bluezone');
-                    innerRow.classList.remove('flash-active');
                 }
                 
                 if(visibilityClass === 'hidden-top4') {
@@ -576,7 +570,7 @@
                 }
 
                 // ควบคุมคลาสอื่นๆ
-                innerRow.className = `team-row-inner ${themeClass} ${expansionClass} ${!teamIsAlive ? 'eliminated-team' : ''} ${innerRow.classList.contains('in-bluezone') ? 'in-bluezone' : ''} ${innerRow.classList.contains('flash-active') ? 'flash-active' : ''}`;
+                innerRow.className = `team-row-inner ${themeClass} ${expansionClass} ${!teamIsAlive ? 'eliminated-team' : ''} ${innerRow.classList.contains('in-bluezone') ? 'in-bluezone' : ''}`;
                 
                 const rowWrapper = innerRow.querySelector('.row-grid-wrapper');
                 
