@@ -217,8 +217,38 @@
             will-change: transform;
         }
         
-        @keyframes bluezone-pulse { 0% { background-color: rgba(0, 150, 255, 0); } 50% { background-color: rgba(0, 150, 255, 0.4); } 100% { background-color: rgba(0, 150, 255, 0); } }
-        .team-row-inner.in-bluezone .bg-layer::after { content: ''; position: absolute; top: 0; left: 0; right: 0; height: 32px; animation: bluezone-pulse 1.5s infinite; z-index: 1; pointer-events: none; }
+        /* 🟢 แก้ไขให้ Animation Bluezone กระพริบพร้อมกันทุกตาราง */
+        @keyframes bluezone-pulse { 
+            0%, 100% { background-color: rgba(0, 150, 255, 0); } 
+            50% { background-color: rgba(0, 150, 255, 0.4); } 
+        }
+        
+        /* ใส่ animation-delay แบบติดลบไม่ได้ผลในเคสนี้ ต้องใช้หลักการซิงค์เวลา */
+        .scoreboard-container::before {
+            /* สร้าง dummy element สำหรับนับจังหวะ */
+            content: '';
+            display: none;
+            animation: bluezone-pulse 1.5s infinite;
+        }
+
+        .team-row-inner.in-bluezone .bg-layer::after { 
+            content: ''; 
+            position: absolute; 
+            top: 0; 
+            left: 0; 
+            right: 0; 
+            height: 32px; 
+            /* ลบ animation ออกจาก CSS แล้วไปใช้ JS คุมคลาสแทน */
+            background-color: rgba(0, 150, 255, 0);
+            transition: background-color 0.75s ease-in-out;
+            z-index: 1; 
+            pointer-events: none; 
+        }
+
+        /* คลาสที่จะถูกสลับไปมาด้วย JS */
+        .team-row-inner.in-bluezone.flash-active .bg-layer::after {
+            background-color: rgba(0, 150, 255, 0.4);
+        }
 
         @keyframes pulse-knocked {
             0% { opacity: 1; }
@@ -283,6 +313,12 @@
             }
         } catch(e) {}
 
+        // 🟢 ระบบควบคุมแอนิเมชัน Bluezone ให้กระพริบพร้อมกันทั้งจอ
+        setInterval(() => {
+            const rows = document.querySelectorAll('.team-row-inner.in-bluezone');
+            rows.forEach(row => row.classList.toggle('flash-active'));
+        }, 750); // สลับสถานะทุกๆ 0.75 วิ (รวม 1 รอบ = 1.5 วิ เท่า CSS เดิม)
+
         function renderScoreboard(data) {
             if (!data || !data.data || !data.data.teams) return;
             latestData = data; 
@@ -297,7 +333,7 @@
             }
             previousAliveCount = aliveTeamsCountCheck;
 
-            // 🟢 ล้างประวัติเกมส์เมื่อขึ้นแมตช์ใหม่
+            // ล้างประวัติเกมส์เมื่อขึ้นแมตช์ใหม่
             if (isMatchReset) {
                 matchEndTime = 0;
                 top4EntryTime = 0;
@@ -392,7 +428,7 @@
                     teamBluechipCounts[team.team_name] = currentBluechipCount;
 
                     for (let i = 0; i < diff; i++) {
-                        const delay = i * 1000; 
+                        const delay = i * 500; 
                         setTimeout(() => {
                             bluechipTimers[team.team_name] = Date.now() + 5000;
                         }, delay);
@@ -460,7 +496,6 @@
                             const bannerHtml = document.createElement('div');
                             bannerHtml.className = 'revived-banner animate';
                             bannerHtml.style.backgroundImage = `url('REVIVED.png')`;
-                            // 🟢 ถอด text-shadow ออกแล้ว
                             bannerHtml.innerHTML = `<span style="font-weight:bold; font-size:18px; color:#ffffff;">REVIVED: ${playerName}</span>`;
                             
                             innerRow.querySelector('.banner-layer').appendChild(bannerHtml);
@@ -479,30 +514,30 @@
                     }
                 }
 
-                // 🌟 ระบบตรวจจับตายยกตี้ (ELIMINATED) - ปรับให้ทำงานทุกครั้งที่โหลด (F5) สำหรับทีมที่ตายแล้ว
+                // ระบบตรวจจับตายยกตี้ (ELIMINATED)
                 if (!teamIsAlive && !currentTeamsEliminated[team.team_name]) {
                     currentTeamsEliminated[team.team_name] = true;
-                    // บันทึกเวลาปัจจุบันเสมอ เพื่อให้เงื่อนไขขยาย Row และเล่นแอนิเมชันทำงาน
-                    teamEliminatedTime[team.team_name] = now; 
+                    teamEliminatedTime[team.team_name] = (isFirstRender || isMatchReset) ? 0 : now; 
                     
                     if (finalTop4.includes(team.team_name) && !top4EliminationOrder.includes(team.team_name)) {
                         top4EliminationOrder.push(team.team_name);
                         localStorage.setItem(`pubg_top4Order_${tourneyId || 'default'}`, JSON.stringify(top4EliminationOrder));
                     }
 
-                    // 🟢 โชว์ป้าย ELIMINATED ทันที (ลบเงื่อนไข !isFirstRender ออก เพื่อให้แสดงตอน F5 ด้วย)
-                    const cacheBuster = now;
-                    const bannerHtml = document.createElement('div');
-                    bannerHtml.className = useGifMode ? 'eliminated-banner gif-mode animate' : 'eliminated-banner default-mode animate';
-                    
-                    if (useGifMode) {
-                        bannerHtml.style.backgroundImage = `url('${LOCAL_LOGO_PATH}ELIMINATED.gif?t=${cacheBuster}')`;
-                    } else {
-                        bannerHtml.innerHTML = `<span style="font-weight:bold;">>> ELIMINATED <<</span>`;
+                    if (!isFirstRender && !isMatchReset) {
+                        const cacheBuster = now;
+                        const bannerHtml = document.createElement('div');
+                        bannerHtml.className = useGifMode ? 'eliminated-banner gif-mode animate' : 'eliminated-banner default-mode animate';
+                        
+                        if (useGifMode) {
+                            bannerHtml.style.backgroundImage = `url('${LOCAL_LOGO_PATH}ELIMINATED.gif?t=${cacheBuster}')`;
+                        } else {
+                            bannerHtml.innerHTML = `<span style="font-weight:bold;">>> ELIMINATED <<</span>`;
+                        }
+                        
+                        innerRow.querySelector('.banner-layer').appendChild(bannerHtml);
+                        setTimeout(() => { bannerHtml.remove(); }, elimDurationMs + 50);
                     }
-                    
-                    innerRow.querySelector('.banner-layer').appendChild(bannerHtml);
-                    setTimeout(() => { bannerHtml.remove(); }, elimDurationMs + 50);
                 }
 
                 let expansionClass = 'collapsed', visibilityClass = ''; 
@@ -537,7 +572,17 @@
                 }
 
                 const themeClass = index === 0 ? 'first-place' : 'normal-place';
-                const bluezoneClass = (teamInBlueZone && teamIsAlive) ? 'in-bluezone' : '';
+                
+                // 🟢 กำหนด Class Bluezone
+                if (teamInBlueZone && teamIsAlive) {
+                    // ถ้ายังไม่มีคลาส in-bluezone ให้เติมเข้าไป (ตัวสลับกระพริบทำงานตลอดเวลาอยู่แล้ว)
+                    if (!innerRow.classList.contains('in-bluezone')) {
+                        innerRow.classList.add('in-bluezone');
+                    }
+                } else {
+                    innerRow.classList.remove('in-bluezone');
+                    innerRow.classList.remove('flash-active');
+                }
                 
                 if(visibilityClass === 'hidden-top4') {
                     wrapperRow.classList.add('hidden-top4');
@@ -545,7 +590,8 @@
                     wrapperRow.classList.remove('hidden-top4');
                 }
 
-                innerRow.className = `team-row-inner ${themeClass} ${expansionClass} ${!teamIsAlive ? 'eliminated-team' : ''} ${bluezoneClass}`;
+                // ควบคุมคลาสอื่นๆ
+                innerRow.className = `team-row-inner ${themeClass} ${expansionClass} ${!teamIsAlive ? 'eliminated-team' : ''} ${innerRow.classList.contains('in-bluezone') ? 'in-bluezone' : ''} ${innerRow.classList.contains('flash-active') ? 'flash-active' : ''}`;
                 
                 const rowWrapper = innerRow.querySelector('.row-grid-wrapper');
                 
