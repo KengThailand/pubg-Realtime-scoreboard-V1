@@ -211,9 +211,9 @@
         .revived-banner { 
             position: absolute; top: 0; left: 0; width: 100%; height: 32px; 
             background-image: url('REVIVED.png'); 
-            background-size: cover; /* หรือลองใช้ contain ถ้าภาพโดนตัด */
+            background-size: cover; 
             background-position: center;
-            background-repeat: no-repeat; /* ป้องกันภาพเล่นซ้ำ */
+            background-repeat: no-repeat; 
             color: #ffffff; 
             display: flex; align-items: center; justify-content: center; font-size: 17px; transform: translateX(-105%); 
             animation: slide-pause-out-banner 4s ease-in-out forwards;
@@ -250,9 +250,18 @@
         }
         
         #error-msg { color: #f59600; font-size: 14px; background: #222; padding: 15px; border: 1px solid #f59600; display: none; }
+        
+        /* 🟢 ซ่อนพื้นที่สำหรับ Preload Image */
+        #preload-images { display: none; }
     </style>
 </head>
 <body>
+
+    <div id="preload-images">
+        <img src="REVIVED.png" alt="preload">
+        <img src="BLUECHIP.png" alt="preload">
+        <img src="http://localhost/Keng/ELIMINATED.gif" alt="preload" onerror="this.remove()">
+    </div>
 
     <div id="error-msg">กรุณาระบุ Tournament ID ผ่านการเจนลิงก์จากหน้า Control Panel (index.html) ก่อนนำมาใส่ใน OBS ครับ</div>
 
@@ -288,7 +297,7 @@
         let previousAliveCount = 0; 
         
         let teamBluechipCounts = {};
-        // 🟢 เก็บสถานะ ว่ามีคนกำลังรอฟื้นไหม (true/false) 
+        // เก็บสถานะ ว่ามีคนกำลังรอฟื้นไหม (true/false) 
         let isWaitingForRevive = {}; 
         let matchEndTime = 0;
 
@@ -303,7 +312,7 @@
             }
         } catch(e) {}
 
-        // 🟢 ระบบควบคุมแอนิเมชัน Bluezone ให้กระพริบพร้อมกันทั้งจอ (Global Sync)
+        // ระบบควบคุมแอนิเมชัน Bluezone ให้กระพริบพร้อมกันทั้งจอ (Global Sync)
         setInterval(() => {
             const container = document.getElementById('main-container');
             if(container) {
@@ -408,7 +417,7 @@
                 let teamIsAlive = false, teamInBlueZone = false, revivedPlayersQueue = [];
                 let dotsHtml = '', playerDetailsHtml = ''; 
 
-                // 🌟 1. ดักการ "กดใช้เครื่อง"
+                // ดักการ "กดใช้เครื่อง"
                 let currentBluechipCount = team.useBluechipCount || team.revive_count || team.bluechip_revive || team.revives || 0;
                 
                 if (teamBluechipCounts[team.team_name] === undefined) {
@@ -417,7 +426,7 @@
 
                 if (currentBluechipCount > teamBluechipCounts[team.team_name]) {
                     teamBluechipCounts[team.team_name] = currentBluechipCount;
-                    // 🟢 เมื่อมีการกดใช้เครื่อง ให้เซ็ตค่าเป็น true โชว์ค้างไปเลย ไม่มีวันหมดอายุ
+                    // เมื่อมีการกดใช้เครื่อง ให้เซ็ตค่าเป็น true โชว์ค้างไปเลย ไม่มีวันหมดอายุ
                     isWaitingForRevive[team.team_name] = true;
                 }
 
@@ -443,7 +452,7 @@
                         let rawName = p.name || '';
                         let cleanName = rawName.replace(prefixRegex, '');
 
-                        // 🎯 2. ตรวจจับการ "เกิดสำเร็จ"
+                        // ตรวจจับการ "เกิดสำเร็จ"
                         if (!isMatchReset && playerStates[rawName] === false && isCurrentlyAlive) {
                             revivedPlayersQueue.push(cleanName);
                         }
@@ -475,7 +484,7 @@
 
                 // โชว์ป้ายคนเกิด
                 if (revivedPlayersQueue.length > 0 && !isMatchReset) {
-                    // 🟢 เมื่อผู้เล่นเกิดแล้ว ให้ยกเลิกการรอชุบ (หด Panel ทันที)
+                    // เมื่อผู้เล่นเกิดแล้ว ให้ยกเลิกการรอชุบ (หด Panel ทันที)
                     isWaitingForRevive[team.team_name] = false;
                     currentTeamsEliminated[team.team_name] = false; 
 
@@ -484,7 +493,7 @@
                             const bannerHtml = document.createElement('div');
                             bannerHtml.className = 'revived-banner animate';
                             bannerHtml.style.backgroundImage = `url('REVIVED.png')`;
-                            bannerHtml.innerHTML = `<span style="font-weight:bold; font-size:18px; color:#ffffff;">REVIVED: ${playerName}</span>`;
+                            bannerHtml.innerHTML = `<span style="font-size:18px; color:#ffffff;">REVIVED: ${playerName}</span>`;
                             
                             innerRow.querySelector('.banner-layer').appendChild(bannerHtml);
                             setTimeout(() => { bannerHtml.remove(); }, 4050);
@@ -492,7 +501,7 @@
                     });
                 }
 
-                // 🟢 ควบคุม UI Panel ขวา แบบสถานะรอ
+                // ควบคุม UI Panel ขวา แบบสถานะรอ
                 const bcPanel = wrapperRow.querySelector('.blue-chip-panel');
                 if (bcPanel) {
                     // โชว์เมื่อกำลังรอชุบ (isWaitingForRevive เป็น true) และทีมยังไม่ตายหมดตี้
@@ -503,7 +512,7 @@
                     }
                 }
 
-                // 🌟 ระบบตรวจจับตายยกตี้ (ELIMINATED) - 🟢 บังคับแสดงผลทันทีเมื่อโหลดหน้าเว็บ
+                // ระบบตรวจจับตายยกตี้ (ELIMINATED) - บังคับแสดงผลทันทีเมื่อโหลดหน้าเว็บ
                 if (!teamIsAlive && !currentTeamsEliminated[team.team_name]) {
                     currentTeamsEliminated[team.team_name] = true;
                     teamEliminatedTime[team.team_name] = (isFirstRender || isMatchReset) ? 0 : now; 
@@ -516,7 +525,7 @@
                         localStorage.setItem(`pubg_top4Order_${tourneyId || 'default'}`, JSON.stringify(top4EliminationOrder));
                     }
 
-                    // 🟢 โชว์ป้าย ELIMINATED ทันที (ลบเงื่อนไข !isFirstRender ออก เพื่อให้แสดงตอน F5 ด้วย)
+                    // โชว์ป้าย ELIMINATED ทันที (ลบเงื่อนไข !isFirstRender ออก เพื่อให้แสดงตอน F5 ด้วย)
                     const cacheBuster = now;
                     const bannerHtml = document.createElement('div');
                     bannerHtml.className = useGifMode ? 'eliminated-banner gif-mode animate' : 'eliminated-banner default-mode animate';
@@ -524,7 +533,7 @@
                     if (useGifMode) {
                         bannerHtml.style.backgroundImage = `url('${LOCAL_LOGO_PATH}ELIMINATED.gif?t=${cacheBuster}')`;
                     } else {
-                        bannerHtml.innerHTML = `<span style="font-weight:bold;">>> ELIMINATED <<</span>`;
+                        bannerHtml.innerHTML = `<span>>> ELIMINATED <<</span>`;
                     }
                     
                     innerRow.querySelector('.banner-layer').appendChild(bannerHtml);
@@ -564,13 +573,14 @@
 
                 const themeClass = index === 0 ? 'first-place' : 'normal-place';
                 
-                // 🟢 กำหนด Class Bluezone ให้ทำงานร่วมกับ Global Sync
+                // กำหนด Class Bluezone ให้ทำงานร่วมกับ Global Sync
                 if (teamInBlueZone && teamIsAlive) {
                     if (!innerRow.classList.contains('in-bluezone')) {
                         innerRow.classList.add('in-bluezone');
                     }
                 } else {
                     innerRow.classList.remove('in-bluezone');
+                    innerRow.classList.remove('flash-active');
                 }
                 
                 if(visibilityClass === 'hidden-top4') {
@@ -580,7 +590,7 @@
                 }
 
                 // ควบคุมคลาสอื่นๆ
-                innerRow.className = `team-row-inner ${themeClass} ${expansionClass} ${!teamIsAlive ? 'eliminated-team' : ''} ${innerRow.classList.contains('in-bluezone') ? 'in-bluezone' : ''}`;
+                innerRow.className = `team-row-inner ${themeClass} ${expansionClass} ${!teamIsAlive ? 'eliminated-team' : ''} ${innerRow.classList.contains('in-bluezone') ? 'in-bluezone' : ''} ${innerRow.classList.contains('flash-active') ? 'flash-active' : ''}`;
                 
                 const rowWrapper = innerRow.querySelector('.row-grid-wrapper');
                 
