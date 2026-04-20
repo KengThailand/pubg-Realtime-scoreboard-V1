@@ -151,11 +151,9 @@
         .col-team { justify-content: flex-start; padding-left: 4px; }
         .header-row .col-team { padding-left: 28px; } 
 
-        /* 🟢 ขยับคอลัมน์ ALIVE ไปซ้ายอีกนิด เพื่อไม่ให้ชิด PTS */
         .col-alive { justify-content: center; gap: 2px; transform: translateX(-4px); }
         .col-pts, .col-kills { justify-content: center; font-size: 16px; }
 
-        /* 🟢 ขยับหัวข้อ ALIVE ไปทางซ้ายให้ตรงกันด้วย */
         .header-row .col-rank, .header-row .col-team, .header-row .col-alive, .header-row .col-pts, .header-row .col-kills { font-size: 14px; letter-spacing: 0px; }
         .header-row .col-alive { transform: translateX(-4px); }
         .header-row .col-pts, .header-row .col-kills { transform: translateX(0); }
@@ -186,19 +184,17 @@
         }
 
         .player-list { padding: 2px 8px 6px 34px; display: flex; flex-direction: column; gap: 5px; }
-        /* 🟢 ปรับ CSS Grid ให้ส่วนชื่อผู้เล่นสามารถหดตัวโชว์จุดไข่ปลาได้ถูกต้อง */
         .player-item { display: grid; grid-template-columns: minmax(0, 1fr) 110px; align-items: center; gap: 10px; width: 100%; }
         
-        /* 🟢 ปรับขนาดและบังคับให้ทำงานร่วมกับ CSS Grid ได้อย่างสมบูรณ์ */
         .player-name { 
-            font-size: 12px; /* 🟢 ปรับขนาดให้เล็กลงอีกนิดเพื่อไม่ให้ล้นบ่อย */
+            font-size: 12px; 
             white-space: nowrap; 
             overflow: hidden; 
             text-overflow: ellipsis; 
             color: var(--c-team-text-alive); 
             text-transform: none; 
             line-height: normal;
-            display: block; /* 🟢 เปลี่ยนเป็น block เพื่อให้ ellipsis ทำงาน */
+            display: block; 
             transform: translateY(1px); 
         }
         .player-name.dead { color: var(--c-team-text-dead); opacity: 0.7; }
@@ -455,7 +451,15 @@
                 }
 
                 if (currentBluechipCount > teamBluechipCounts[team.team_name]) {
+                    const diff = currentBluechipCount - teamBluechipCounts[team.team_name];
                     teamBluechipCounts[team.team_name] = currentBluechipCount;
+
+                    for (let i = 0; i < diff; i++) {
+                        const delay = i * 500; 
+                        setTimeout(() => {
+                            // การแสดง Panel ไม่ต้องใช้ Timeout ปิดในเวอร์ชั่นรอคนเกิด
+                        }, delay);
+                    }
                     isWaitingForRevive[team.team_name] = true;
                 }
 
@@ -701,6 +705,16 @@
             if(urlParams.has('dur')) {
                 gifDuration = parseFloat(urlParams.get('dur')) || 4.0;
                 document.documentElement.style.setProperty('--gif-duration', `${gifDuration}s`);
+            }
+
+            // 🟢 ดึงค่า Layout มาปรับใช้กับ Overlay
+            if(urlParams.has('w')) {
+                document.querySelector('.scoreboard-container').style.width = urlParams.get('w') + 'px';
+            }
+            if(urlParams.has('x') || urlParams.has('y')) {
+                const x = urlParams.get('x') || '0';
+                const y = urlParams.get('y') || '0';
+                document.body.style.transform = `translate(${x}px, ${y}px)`;
             }
 
             API_URL = `https://domestic.atum.live/api/pubg/liveleaderboard?account_id=nattapon7799&series=${tourneyId}&tournament_id=${tourneyId}&mode=post&all_teams=true`;
