@@ -31,7 +31,7 @@
             font-family: 'TransducerCondensed', 'Segoe UI', Tahoma, sans-serif !important;
             letter-spacing: 0.3px;
             box-sizing: border-box;
-            font-weight: 400 !important; 
+            font-weight: normal !important; /* 🟢 บังคับใช้ตัวบางทั้งหน้า */
             -webkit-font-smoothing: antialiased; 
         }
 
@@ -64,6 +64,7 @@
             text-transform: uppercase; 
             padding-bottom: 10px; 
             border-bottom: 2px solid rgba(245, 150, 0, 0.2);
+            font-weight: normal; /* 🟢 ปลดตัวหนาที่หัวข้อ */
         }
         
         label { 
@@ -121,7 +122,6 @@
             margin-bottom: 10px; 
         }
 
-        /* 🟢 เพิ่ม Grid 3 คอลัมน์สำหรับ Layout */
         .layout-grid {
             display: grid; 
             grid-template-columns: 1fr 1fr 1fr; 
@@ -200,6 +200,7 @@
             cursor: pointer; 
             text-transform: uppercase; 
             font-size: 18px; 
+            font-weight: normal; /* 🟢 ปลดตัวหนาที่ปุ่ม */
             transition: all 0.2s; 
             display: flex;
             justify-content: center;
@@ -316,7 +317,7 @@
             'tbd': '#222222', 'ttd': '#7a7a7a', 'tca': '#ffffff', 'tck': '#ff0000',
             'hpa': '#2ecc71', 'hpk': '#ff0000', 'ebg': '#007bff', 'etx': '#ffffff', 
             'input-tourney-id': 'kr-pws1ws1', 'input-gif-duration': '2.0', 'input-opacity': '1.0',
-            'input-width': '260', 'input-pos-x': '0', 'input-pos-y': '0' // 🟢 เพิ่มค่าเริ่มต้นสำหรับ Layout
+            'input-width': '260', 'input-pos-x': '0', 'input-pos-y': '0'
         };
 
         function loadSettings() {
@@ -379,7 +380,6 @@
             const dur = document.getElementById('input-gif-duration').value;
             const opc = document.getElementById('input-opacity').value;
             
-            // 🟢 ดึงค่า Layout เพื่อส่งผ่าน URL
             const w = document.getElementById('input-width').value || '260';
             const x = document.getElementById('input-pos-x').value || '0';
             const y = document.getElementById('input-pos-y').value || '0';
@@ -388,13 +388,12 @@
             if (currentUrl.endsWith('index.html')) currentUrl = currentUrl.replace('index.html', '');
             if (!currentUrl.endsWith('/')) currentUrl += '/';
             
-            // 🟢 แนบตัวแปร w, x, y ไปกับ URL
             const params = `bg=${bg}&ht=${ht}&tba=${tba}&tta=${tta}&tbd=${tbd}&ttd=${ttd}&tca=${tca}&tck=${tck}&hpa=${hpa}&hpk=${hpk}&ebg=${ebg}&etx=${etx}&gif=${gif}&dur=${dur}&opc=${opc}&w=${w}&x=${x}&y=${y}`;
             
             document.getElementById('generated-url').value = `${currentUrl}overlay.html?tourney=${tourney}&${params}`;
         }
 
-        const inputs = document.querySelectorAll('input');
+        const inputs = document.querySelectorAll('input'); 
         inputs.forEach(input => input.addEventListener('input', () => {
             if (input.id === 'input-opacity') updateOpacityDisplay();
             updateLink();
