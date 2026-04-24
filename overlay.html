@@ -20,6 +20,7 @@
         /* 🟢 โหลดฟอนต์ Header */
         @font-face {
             font-family: 'TransducerCondensed';
+            /* 💡 ถ้ามีไฟล์ฟอนต์ตัวบาง ให้เปลี่ยนชื่อไฟล์ตรงนี้ครับ */
             src: url('Transducer-CondensedBold.otf') format('opentype');
             font-weight: normal; font-style: normal;
         }
@@ -35,7 +36,7 @@
         * {
             font-family: 'EsamanruMedium', sans-serif !important;
             letter-spacing: 0.5px;
-            font-weight: normal !important; 
+            font-weight: normal !important; /* บังคับให้เป็นตัวธรรมดา ไม่หนา */
             -webkit-font-smoothing: antialiased; 
             -moz-osx-font-smoothing: grayscale;
             backface-visibility: hidden;
@@ -151,26 +152,29 @@
         .col-team { justify-content: flex-start; padding-left: 4px; }
         .header-row .col-team { padding-left: 28px; } 
 
+        /* 🟢 ขยับคอลัมน์ ALIVE ไปซ้ายอีกนิด เพื่อไม่ให้ชิด PTS */
         .col-alive { justify-content: center; gap: 2px; transform: translateX(-4px); }
         .col-pts, .col-kills { justify-content: center; font-size: 16px; }
 
+        /* 🟢 ขยับหัวข้อ ALIVE ไปทางซ้ายให้ตรงกันด้วย */
         .header-row .col-rank, .header-row .col-team, .header-row .col-alive, .header-row .col-pts, .header-row .col-kills { font-size: 14px; letter-spacing: 0px; }
         .header-row .col-alive { transform: translateX(-4px); }
         .header-row .col-pts, .header-row .col-kills { transform: translateX(0); }
 
         .team-logo { width: 28px; height: 28px; margin-right: 8px; object-fit: contain; background-color: transparent; flex-shrink: 0; transform: translateZ(0); }
         
+        /* 🟢 บังคับพิมพ์ใหญ่ให้ชื่อทีม + จัดให้อยู่กึ่งกลางแนวตั้ง */
         .team-name { 
             font-size: 16px; 
             white-space: nowrap; 
             overflow: hidden; 
             text-overflow: ellipsis; 
-            line-height: normal; 
-            text-transform: uppercase; 
+            line-height: normal; /* เปลี่ยนเป็น normal ให้จัดกึ่งกลางง่ายขึ้น */
+            text-transform: uppercase; /* บังคับพิมพ์ใหญ่ */
             display: flex;
-            align-items: center; 
+            align-items: center; /* จัดให้อยู่กลางแนวตั้ง */
             height: 100%;
-            transform: translateY(1px); 
+            transform: translateY(1px); /* ขยับลงมาให้บาลานซ์กับกล่อง */
         }
 
         .alive-bar { position: relative; width: 6px; height: 18px; border-radius: 1px; border: 1px solid #000000; box-sizing: border-box; background-color: #111111; overflow: hidden; transform: translateZ(0); }
@@ -184,18 +188,20 @@
         }
 
         .player-list { padding: 2px 8px 6px 34px; display: flex; flex-direction: column; gap: 5px; }
+        /* 🟢 ปรับ CSS Grid ให้ส่วนชื่อผู้เล่นสามารถหดตัวโชว์จุดไข่ปลาได้ถูกต้อง */
         .player-item { display: grid; grid-template-columns: minmax(0, 1fr) 110px; align-items: center; gap: 10px; width: 100%; }
         
+        /* 🟢 ปรับขนาดและบังคับให้ทำงานร่วมกับ CSS Grid ได้อย่างสมบูรณ์ */
         .player-name { 
-            font-size: 12px; 
+            font-size: 12px; /* 🟢 ปรับขนาดให้เล็กลงอีกนิดเพื่อไม่ให้ล้นบ่อย */
             white-space: nowrap; 
             overflow: hidden; 
             text-overflow: ellipsis; 
             color: var(--c-team-text-alive); 
-            text-transform: none; 
+            text-transform: none; /* คงสภาพตัวเล็ก-ใหญ่ตามเดิม */
             line-height: normal;
-            display: block; 
-            transform: translateY(1px); 
+            display: block; /* 🟢 เปลี่ยนเป็น block เพื่อให้ ellipsis ทำงาน */
+            transform: translateY(1px); /* ขยับลงมาให้บาลานซ์กับหลอดเลือด */
         }
         .player-name.dead { color: var(--c-team-text-dead); opacity: 0.7; }
         
@@ -256,6 +262,7 @@
             will-change: transform;
         }
         
+        /* 🟢 CSS Animation สำหรับ Bluezone (ให้ทำงานพร้อมกันผ่าน JS) */
         .team-row-inner.in-bluezone .bg-layer::after { 
             content: ''; 
             position: absolute; 
@@ -269,21 +276,24 @@
             pointer-events: none; 
         }
 
+        /* เมื่อ JS เติม Class นี้ จะทำให้พื้นหลังเป็นสีฟ้า (กระพริบ) */
         .scoreboard-container.global-bluezone-flash .team-row-inner.in-bluezone .bg-layer::after {
             background-color: rgba(0, 150, 255, 0.4);
         }
 
+        /* 🟢 แยกแอนิเมชันสำหรับผู้เล่นที่ล้ม (Knocked) - ปรับให้ช้าลงและสมูทขึ้นเป็นจังหวะหายใจ */
         @keyframes pulse-knocked {
-            0% { opacity: 1; }
-            50% { opacity: 0.3; }
-            100% { opacity: 1; }
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.4; } /* ดรอปแสงแค่ 40% จะได้ไม่ดูกระพริบแรงไป */
         }
         .knocked-pulse {
-            animation: pulse-knocked 1.5s infinite ease-in-out;
+            animation: pulse-knocked 2.5s infinite ease-in-out; /* เพิ่มเวลาจาก 1.5s เป็น 2.5s */
             will-change: opacity;
         }
         
         #error-msg { color: #f59600; font-size: 14px; background: #222; padding: 15px; border: 1px solid #f59600; display: none; }
+        
+        /* 🟢 ซ่อนพื้นที่สำหรับ Preload Image */
         #preload-images { display: none; }
     </style>
 </head>
@@ -329,9 +339,11 @@
         let previousAliveCount = 0; 
         
         let teamBluechipCounts = {};
+        // 🟢 เก็บสถานะ ว่ามีคนกำลังรอฟื้นไหม (true/false) 
         let isWaitingForRevive = {}; 
         let matchEndTime = 0;
 
+        // โหลด State ของ Top4 จาก localStorage
         try {
             const savedTop4 = JSON.parse(localStorage.getItem(`pubg_finalTop4_${tourneyId || 'default'}`) || "[]");
             const savedOrder = JSON.parse(localStorage.getItem(`pubg_top4Order_${tourneyId || 'default'}`) || "[]");
@@ -342,6 +354,7 @@
             }
         } catch(e) {}
 
+        // 🟢 ระบบควบคุมแอนิเมชัน Bluezone ให้กระพริบพร้อมกันทั้งจอ (Global Sync)
         setInterval(() => {
             const container = document.getElementById('main-container');
             if(container) {
@@ -356,17 +369,19 @@
 
             const aliveTeamsCountCheck = data.data.teams.filter(t => t.elimination === false || (t.players && t.players.some(p => p.isAlive))).length;
             
+            // ตรวจจับการเริ่มแมตช์ใหม่
             let isMatchReset = false;
             if (isFirstRender || (previousAliveCount < 10 && aliveTeamsCountCheck >= 14)) {
                 isMatchReset = true;
             }
             previousAliveCount = aliveTeamsCountCheck;
 
+            // ล้างประวัติเกมส์เมื่อขึ้นแมตช์ใหม่
             if (isMatchReset) {
                 matchEndTime = 0;
                 top4EntryTime = 0;
                 teamBluechipCounts = {};
-                isWaitingForRevive = {}; 
+                isWaitingForRevive = {}; // เคลียร์สถานะการรอชุบ
                 
                 currentTeamsEliminated = {}; 
                 playerStates = {}; 
@@ -444,6 +459,7 @@
                 let teamIsAlive = false, teamInBlueZone = false, revivedPlayersQueue = [];
                 let dotsHtml = '', playerDetailsHtml = ''; 
 
+                // 🌟 1. ดักการ "กดใช้เครื่อง"
                 let currentBluechipCount = team.useBluechipCount || team.revive_count || team.bluechip_revive || team.revives || 0;
                 
                 if (teamBluechipCounts[team.team_name] === undefined) {
@@ -451,15 +467,8 @@
                 }
 
                 if (currentBluechipCount > teamBluechipCounts[team.team_name]) {
-                    const diff = currentBluechipCount - teamBluechipCounts[team.team_name];
                     teamBluechipCounts[team.team_name] = currentBluechipCount;
-
-                    for (let i = 0; i < diff; i++) {
-                        const delay = i * 500; 
-                        setTimeout(() => {
-                            // การแสดง Panel ไม่ต้องใช้ Timeout ปิดในเวอร์ชั่นรอคนเกิด
-                        }, delay);
-                    }
+                    // 🟢 เมื่อมีการกดใช้เครื่อง ให้เซ็ตค่าเป็น true โชว์ค้างไปเลย ไม่มีวันหมดอายุ
                     isWaitingForRevive[team.team_name] = true;
                 }
 
@@ -485,6 +494,7 @@
                         let rawName = p.name || '';
                         let cleanName = rawName.replace(prefixRegex, '');
 
+                        // 🎯 2. ตรวจจับการ "เกิดสำเร็จ"
                         if (!isMatchReset && playerStates[rawName] === false && isCurrentlyAlive) {
                             revivedPlayersQueue.push(cleanName);
                         }
@@ -514,7 +524,9 @@
                     });
                 }
 
+                // โชว์ป้ายคนเกิด
                 if (revivedPlayersQueue.length > 0 && !isMatchReset) {
+                    // 🟢 เมื่อผู้เล่นเกิดแล้ว ให้ยกเลิกการรอชุบ (หด Panel ทันที)
                     isWaitingForRevive[team.team_name] = false;
                     currentTeamsEliminated[team.team_name] = false; 
 
@@ -523,6 +535,7 @@
                             const bannerHtml = document.createElement('div');
                             bannerHtml.className = 'revived-banner animate';
                             bannerHtml.style.backgroundImage = `url('REVIVED.png')`;
+                            // 🟢 ใส่ text-transform: none; เพื่อรักษารูปแบบอักษรเดิมให้ผู้เล่น
                             bannerHtml.innerHTML = `<span style="font-size:15px; color:#ffffff; text-transform: none;">REVIVED: ${playerName}</span>`;
                             
                             innerRow.querySelector('.banner-layer').appendChild(bannerHtml);
@@ -531,8 +544,10 @@
                     });
                 }
 
+                // 🟢 ควบคุม UI Panel ขวา แบบสถานะรอ
                 const bcPanel = wrapperRow.querySelector('.blue-chip-panel');
                 if (bcPanel) {
+                    // โชว์เมื่อกำลังรอชุบ (isWaitingForRevive เป็น true) และทีมยังไม่ตายหมดตี้
                     if (isWaitingForRevive[team.team_name] && teamIsAlive) {
                         bcPanel.classList.add('active');
                     } else {
@@ -540,10 +555,12 @@
                     }
                 }
 
+                // 🌟 ระบบตรวจจับตายยกตี้ (ELIMINATED) - 🟢 บังคับแสดงผลทันทีเมื่อโหลดหน้าเว็บ
                 if (!teamIsAlive && !currentTeamsEliminated[team.team_name]) {
                     currentTeamsEliminated[team.team_name] = true;
                     teamEliminatedTime[team.team_name] = (isFirstRender || isMatchReset) ? 0 : now; 
                     
+                    // เผื่อว่ากดชุบไว้แต่ทีมดันมาตายหมดก่อน (ป้ายจะได้หุบเก็บไป ไม่ค้างลอยๆ)
                     isWaitingForRevive[team.team_name] = false;
                     
                     if (finalTop4.includes(team.team_name) && !top4EliminationOrder.includes(team.team_name)) {
@@ -551,6 +568,7 @@
                         localStorage.setItem(`pubg_top4Order_${tourneyId || 'default'}`, JSON.stringify(top4EliminationOrder));
                     }
 
+                    // 🟢 โชว์ป้าย ELIMINATED ทันที (ลบเงื่อนไข !isFirstRender ออก เพื่อให้แสดงตอน F5 ด้วย)
                     const cacheBuster = now;
                     const bannerHtml = document.createElement('div');
                     bannerHtml.className = useGifMode ? 'eliminated-banner gif-mode animate' : 'eliminated-banner default-mode animate';
@@ -585,7 +603,8 @@
                             if (elimIndex === -1) {
                                 expansionClass = 'expanded';
                             } else {
-                                const delay = (elimIndex + 1) * elimDurationMs; 
+                                // 🟢 เปลี่ยนการพับเก็บให้พร้อมกัน (ใช้ค่า delay คงที่)
+                                const delay = elimDurationMs; 
                                 if (now - teamEliminatedTime[team.team_name] > delay && teamEliminatedTime[team.team_name] !== 0) {
                                     expansionClass = 'collapsed';
                                 } else {
@@ -598,6 +617,7 @@
 
                 const themeClass = index === 0 ? 'first-place' : 'normal-place';
                 
+                // กำหนด Class Bluezone ให้ทำงานร่วมกับ Global Sync
                 if (teamInBlueZone && teamIsAlive) {
                     if (!innerRow.classList.contains('in-bluezone')) {
                         innerRow.classList.add('in-bluezone');
@@ -613,6 +633,7 @@
                     wrapperRow.classList.remove('hidden-top4');
                 }
 
+                // ควบคุมคลาสอื่นๆ
                 innerRow.className = `team-row-inner ${themeClass} ${expansionClass} ${!teamIsAlive ? 'eliminated-team' : ''} ${innerRow.classList.contains('in-bluezone') ? 'in-bluezone' : ''} ${innerRow.classList.contains('flash-active') ? 'flash-active' : ''}`;
                 
                 const rowWrapper = innerRow.querySelector('.row-grid-wrapper');
@@ -621,7 +642,7 @@
                     const logoSrc = `${LOCAL_LOGO_PATH}${team.team_tag}.png`; 
                     rowWrapper.innerHTML = `
                         <div class="row-grid">
-                            <div class="col-rank">${index + 1}</div>
+                            <div class="col-rank">${team.total_pts_rank}</div>
                             <div class="col-team"><img class="team-logo" src="${logoSrc}" onerror="this.style.visibility='hidden'"><div class="team-name">${team.team_tag}</div></div>
                             <div class="col-alive">${dotsHtml}</div>
                             <div class="col-pts">${team.total_pts_with_penalty}</div>
@@ -630,7 +651,8 @@
                         <div class="player-list">${playerDetailsHtml}</div>
                     `;
                 } else {
-                    rowWrapper.querySelector('.col-rank').innerText = index + 1;
+                    // เปลี่ยนวิธีอัปเดต DOM ให้นุ่มนวลขึ้น
+                    rowWrapper.querySelector('.col-rank').innerText = team.total_pts_rank;
                     rowWrapper.querySelector('.col-alive').innerHTML = dotsHtml;
                     rowWrapper.querySelector('.col-pts').innerText = team.total_pts_with_penalty;
                     rowWrapper.querySelector('.col-kills').innerText = team.match_kills;
@@ -639,6 +661,7 @@
                 
             });
 
+            // ปรับแต่งการใช้ requestAnimationFrame สำหรับเลื่อนแถวให้สมูทที่สุด
             requestAnimationFrame(() => {
                 scoreboard.querySelectorAll('.team-wrapper').forEach(wrapperRow => {
                     const oldTop = oldPositions[wrapperRow.id];
@@ -651,6 +674,7 @@
                             wrapperRow.style.transform = `translate3d(0, ${deltaY}px, 0)`;
                             wrapperRow.classList.add('is-moving'); 
                             
+                            // Force reflow
                             void wrapperRow.offsetWidth;
 
                             requestAnimationFrame(() => {
@@ -707,7 +731,7 @@
                 document.documentElement.style.setProperty('--gif-duration', `${gifDuration}s`);
             }
 
-            // 🟢 ดึงค่า Layout มาปรับใช้กับ Overlay
+            // ดึงค่า Layout มาปรับใช้กับ Overlay
             if(urlParams.has('w')) {
                 document.querySelector('.scoreboard-container').style.width = urlParams.get('w') + 'px';
             }
@@ -717,7 +741,7 @@
                 document.body.style.transform = `translate(${x}px, ${y}px)`;
             }
 
-            API_URL = `https://domestic.atum.live/api/pubg/liveleaderboard?account_id=nattapon7799&series=${tourneyId}&tournament_id=${tourneyId}&mode=post&all_teams=true`;
+            API_URL = `https://domestic.atum.live/api/pubg/liveleaderboard?account_id=nattapon7799&series=${tourneyId}&tournament_id=${tourneyId}&mode=post`;
             fetchRealTimeData();
             setInterval(fetchRealTimeData, 1000); 
         }
