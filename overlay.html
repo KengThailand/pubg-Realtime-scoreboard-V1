@@ -20,6 +20,7 @@
         /* 🟢 โหลดฟอนต์ Header */
         @font-face {
             font-family: 'TransducerCondensed';
+            /* 💡 ถ้ามีไฟล์ฟอนต์ตัวบาง ให้เปลี่ยนชื่อไฟล์ตรงนี้ครับ */
             src: url('Transducer-CondensedBold.otf') format('opentype');
             font-weight: normal; font-style: normal;
         }
@@ -35,7 +36,7 @@
         * {
             font-family: 'EsamanruMedium', sans-serif !important;
             letter-spacing: 0.5px;
-            font-weight: normal !important; 
+            font-weight: normal !important; /* บังคับให้เป็นตัวธรรมดา ไม่หนา */
             -webkit-font-smoothing: antialiased; 
             -moz-osx-font-smoothing: grayscale;
             backface-visibility: hidden;
@@ -168,48 +169,54 @@
             white-space: nowrap; 
             overflow: hidden; 
             text-overflow: ellipsis; 
-            line-height: normal; 
-            text-transform: uppercase; 
+            line-height: normal; /* เปลี่ยนเป็น normal ให้จัดกึ่งกลางง่ายขึ้น */
+            text-transform: uppercase; /* บังคับพิมพ์ใหญ่ */
             display: flex;
-            align-items: center; 
+            align-items: center; /* จัดให้อยู่กลางแนวตั้ง */
             height: 100%;
-            transform: translateY(1px); 
+            transform: translateY(1px); /* ขยับลงมาให้บาลานซ์กับกล่อง */
         }
 
         .alive-bar { position: relative; width: 6px; height: 18px; border-radius: 1px; border: 1px solid #000000; box-sizing: border-box; background-color: #111111; overflow: hidden; transform: translateZ(0); }
+        
+        /* 🟢 ปรับ Transition สำหรับหลอดเลือด ให้สมูทขึ้น */
         .hp-fill-small { 
             position: absolute; bottom: 0; left: 0; width: 100%; 
             height: 100%;
             transform-origin: bottom;
             transform: scaleY(1);
-            transition: transform 0.6s cubic-bezier(0.25, 0.8, 0.25, 1), background-color 0.4s;
-            will-change: transform, background-color;
+            transition: transform 0.6s cubic-bezier(0.25, 0.8, 0.25, 1), background-color 0.4s, opacity 0.75s ease-in-out;
+            will-change: transform, background-color, opacity;
         }
 
         .player-list { padding: 2px 8px 6px 34px; display: flex; flex-direction: column; gap: 5px; }
+        /* 🟢 ปรับ CSS Grid ให้ส่วนชื่อผู้เล่นสามารถหดตัวโชว์จุดไข่ปลาได้ถูกต้อง */
         .player-item { display: grid; grid-template-columns: minmax(0, 1fr) 110px; align-items: center; gap: 10px; width: 100%; }
         
+        /* 🟢 ปรับขนาดและบังคับให้ทำงานร่วมกับ CSS Grid ได้อย่างสมบูรณ์ */
         .player-name { 
-            font-size: 12px; 
+            font-size: 12px; /* 🟢 ปรับขนาดให้เล็กลงอีกนิดเพื่อไม่ให้ล้นบ่อย */
             white-space: nowrap; 
             overflow: hidden; 
             text-overflow: ellipsis; 
             color: var(--c-team-text-alive); 
-            text-transform: none; 
+            text-transform: none; /* คงสภาพตัวเล็ก-ใหญ่ตามเดิม */
             line-height: normal;
-            display: block; 
-            transform: translateY(1px); 
+            display: block; /* 🟢 เปลี่ยนเป็น block เพื่อให้ ellipsis ทำงาน */
+            transform: translateY(1px); /* ขยับลงมาให้บาลานซ์กับหลอดเลือด */
         }
         .player-name.dead { color: var(--c-team-text-dead); opacity: 0.7; }
         
         .player-hp-bar { height: 10px; background-color: #444; border: 1px solid #000; position: relative; overflow: hidden; transform: translateZ(0); }
+        
+        /* 🟢 ปรับ Transition สำหรับหลอดเลือดแนวนอน */
         .player-hp-fill { 
             height: 100%; 
             width: 100%;
             transform-origin: left;
             transform: scaleX(1);
-            transition: transform 0.4s ease-out, background-color 0.4s;
-            will-change: transform, background-color;
+            transition: transform 0.6s cubic-bezier(0.25, 0.8, 0.25, 1), background-color 0.4s, opacity 0.75s ease-in-out;
+            will-change: transform, background-color, opacity;
         }
 
         .data-layer { position: relative; z-index: 5; width: 100%; }
@@ -278,19 +285,12 @@
             background-color: rgba(0, 150, 255, 0.4);
         }
 
-        /* 🟢 แยกแอนิเมชันสำหรับผู้เล่นที่ล้ม (Knocked) - ปรับให้ช้าลงและสมูทขึ้นเป็นจังหวะหายใจ */
-        @keyframes pulse-knocked {
-            0%, 100% { opacity: 1; }
-            50% { opacity: 0.4; } 
-        }
-        .knocked-pulse {
-            animation: pulse-knocked 2.5s infinite ease-in-out; 
-            will-change: opacity;
+        /* 🟢 แอนิเมชันกระพริบหลอดเลือดตอนล้ม (ให้ทำงานซิงค์กับวงฟ้าเป๊ะๆ) */
+        .scoreboard-container.global-bluezone-flash .knocked-pulse {
+            opacity: 0.3 !important; /* ดรอปแสงลงเมื่อวงฟ้าสว่าง */
         }
         
         #error-msg { color: #f59600; font-size: 14px; background: #222; padding: 15px; border: 1px solid #f59600; display: none; }
-        
-        /* 🟢 ซ่อนพื้นที่สำหรับ Preload Image */
         #preload-images { display: none; }
     </style>
 </head>
@@ -319,8 +319,6 @@
 
         let API_URL = "";
         const LOCAL_LOGO_PATH = "http://localhost/Keng/"; 
-        
-        // 🟢 เปลี่ยนกลับมาใช้ gifMode
         let useGifMode = true; 
         let gifDuration = 4.0; 
 
@@ -353,7 +351,7 @@
             }
         } catch(e) {}
 
-        // 🟢 ระบบควบคุมแอนิเมชัน Bluezone ให้กระพริบพร้อมกันทั้งจอ (Global Sync)
+        // 🟢 ระบบควบคุมแอนิเมชัน Bluezone และการกระพริบเลือดล้ม ให้กระพริบพร้อมกันทั้งจอ (Global Sync)
         setInterval(() => {
             const container = document.getElementById('main-container');
             if(container) {
@@ -458,7 +456,7 @@
                 let teamIsAlive = false, teamInBlueZone = false, revivedPlayersQueue = [];
                 let dotsHtml = '', playerDetailsHtml = ''; 
 
-                // 🌟 1. ดักการ "กดใช้เครื่อง" 
+                // 🌟 1. ดักการ "กดใช้เครื่อง"
                 let currentBluechipCount = team.useBluechipCount || team.revive_count || team.bluechip_revive || team.revives || 0;
                 
                 if (teamBluechipCounts[team.team_name] === undefined) {
@@ -570,8 +568,6 @@
                     // 🟢 โชว์ป้าย ELIMINATED ทันที (ลบเงื่อนไข !isFirstRender ออก เพื่อให้แสดงตอน F5 ด้วย)
                     const cacheBuster = now;
                     const bannerHtml = document.createElement('div');
-                    
-                    // 🟢 นำโค้ดที่สร้าง HTML แบบเดิมกลับมา
                     bannerHtml.className = useGifMode ? 'eliminated-banner gif-mode animate' : 'eliminated-banner default-mode animate';
                     
                     if (useGifMode) {
@@ -749,3 +745,4 @@
     </script>
 </body>
 </html>
+
