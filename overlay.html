@@ -178,8 +178,6 @@
         }
 
         .alive-bar { position: relative; width: 6px; height: 18px; border-radius: 1px; border: 1px solid #000000; box-sizing: border-box; background-color: #111111; overflow: hidden; transform: translateZ(0); }
-        
-        /* 🟢 ปรับ Transition สำหรับหลอดเลือด ให้สมูทขึ้น */
         .hp-fill-small { 
             position: absolute; bottom: 0; left: 0; width: 100%; 
             height: 100%;
@@ -208,14 +206,12 @@
         .player-name.dead { color: var(--c-team-text-dead); opacity: 0.7; }
         
         .player-hp-bar { height: 10px; background-color: #444; border: 1px solid #000; position: relative; overflow: hidden; transform: translateZ(0); }
-        
-        /* 🟢 ปรับ Transition สำหรับหลอดเลือดแนวนอน */
         .player-hp-fill { 
             height: 100%; 
             width: 100%;
             transform-origin: left;
             transform: scaleX(1);
-            transition: transform 0.6s cubic-bezier(0.25, 0.8, 0.25, 1), background-color 0.4s, opacity 0.75s ease-in-out;
+            transition: transform 0.4s ease-out, background-color 0.4s, opacity 0.75s ease-in-out;
             will-change: transform, background-color, opacity;
         }
 
@@ -266,7 +262,7 @@
             will-change: transform;
         }
         
-        /* 🟢 CSS Animation สำหรับ Bluezone (ให้ทำงานพร้อมกันผ่าน JS) */
+        /* 🟢 CSS สำหรับ Bluezone (ทำงานพร้อมกันผ่าน JS) */
         .team-row-inner.in-bluezone .bg-layer::after { 
             content: ''; 
             position: absolute; 
@@ -281,16 +277,23 @@
         }
 
         /* เมื่อ JS เติม Class นี้ จะทำให้พื้นหลังเป็นสีฟ้า (กระพริบ) */
-        .scoreboard-container.global-bluezone-flash .team-row-inner.in-bluezone .bg-layer::after {
+        .scoreboard-container.global-flash .team-row-inner.in-bluezone .bg-layer::after {
             background-color: rgba(0, 150, 255, 0.4);
         }
 
-        /* 🟢 แอนิเมชันกระพริบหลอดเลือดตอนล้ม (ให้ทำงานซิงค์กับวงฟ้าเป๊ะๆ) */
-        .scoreboard-container.global-bluezone-flash .knocked-pulse {
-            opacity: 0.3 !important; /* ดรอปแสงลงเมื่อวงฟ้าสว่าง */
+        /* 🟢 CSS สำหรับคนล้ม (Knocked) ดึงจังหวะตาม Global Sync */
+        .hp-fill-small.is-knocked, .player-hp-fill.is-knocked {
+            opacity: 1;
+        }
+
+        .scoreboard-container.global-flash .hp-fill-small.is-knocked, 
+        .scoreboard-container.global-flash .player-hp-fill.is-knocked {
+            opacity: 0.3; /* หรี่แสงลงพร้อมๆ กับวงฟ้า */
         }
         
         #error-msg { color: #f59600; font-size: 14px; background: #222; padding: 15px; border: 1px solid #f59600; display: none; }
+        
+        /* 🟢 ซ่อนพื้นที่สำหรับ Preload Image */
         #preload-images { display: none; }
     </style>
 </head>
@@ -351,11 +354,11 @@
             }
         } catch(e) {}
 
-        // 🟢 ระบบควบคุมแอนิเมชัน Bluezone และการกระพริบเลือดล้ม ให้กระพริบพร้อมกันทั้งจอ (Global Sync)
+        // 🟢 ระบบควบคุมแอนิเมชันกระพริบ (Global Sync) ใช้ควบคุมทั้ง Bluezone และ Knocked
         setInterval(() => {
             const container = document.getElementById('main-container');
             if(container) {
-                container.classList.toggle('global-bluezone-flash');
+                container.classList.toggle('global-flash');
             }
         }, 750); 
 
@@ -456,7 +459,7 @@
                 let teamIsAlive = false, teamInBlueZone = false, revivedPlayersQueue = [];
                 let dotsHtml = '', playerDetailsHtml = ''; 
 
-                // 🌟 1. ดักการ "กดใช้เครื่อง"
+                // 🌟 1. ดักการ "กดใช้เครื่อง" 
                 let currentBluechipCount = team.useBluechipCount || team.revive_count || team.bluechip_revive || team.revives || 0;
                 
                 if (teamBluechipCounts[team.team_name] === undefined) {
@@ -497,7 +500,8 @@
                         }
                         playerStates[rawName] = isCurrentlyAlive;
 
-                        const pulseS = (isCurrentlyAlive && p.isGroggy) ? 'knocked-pulse' : '';
+                        // 🟢 เปลี่ยนมาใช้คลาส is-knocked แทนการเรียก keyframe pulse ตรงๆ
+                        const pulseS = (isCurrentlyAlive && p.isGroggy) ? 'is-knocked' : '';
                         const colorS = isCurrentlyAlive ? (p.isGroggy ? 'var(--c-tick-knocked)' : 'var(--c-tick-alive)') : 'transparent';
                         
                         const hpPercent = isCurrentlyAlive ? (p.isGroggy ? 1 : (typeof p.health === 'number' ? p.health / 100 : 1)) : 0;
@@ -509,7 +513,8 @@
                         let rawName = p.name || '';
                         let cleanName = rawName.replace(prefixRegex, '');
 
-                        const pulseL = (isCurrentlyAlive && p.isGroggy) ? 'knocked-pulse' : '';
+                        // 🟢 เปลี่ยนมาใช้คลาส is-knocked แทนการเรียก keyframe pulse ตรงๆ
+                        const pulseL = (isCurrentlyAlive && p.isGroggy) ? 'is-knocked' : '';
                         const colorL = isCurrentlyAlive ? (p.isGroggy ? 'var(--c-hp-knocked)' : 'var(--c-hp-alive)') : 'transparent';
                         
                         const hpPercent = isCurrentlyAlive ? (p.isGroggy ? 1 : (typeof p.health === 'number' ? p.health / 100 : 1)) : 0;
@@ -614,14 +619,13 @@
 
                 const themeClass = index === 0 ? 'first-place' : 'normal-place';
                 
-                // กำหนด Class Bluezone ให้ทำงานร่วมกับ Global Sync
+                // กำหนด Class Bluezone
                 if (teamInBlueZone && teamIsAlive) {
                     if (!innerRow.classList.contains('in-bluezone')) {
                         innerRow.classList.add('in-bluezone');
                     }
                 } else {
                     innerRow.classList.remove('in-bluezone');
-                    innerRow.classList.remove('flash-active');
                 }
                 
                 if(visibilityClass === 'hidden-top4') {
@@ -631,7 +635,7 @@
                 }
 
                 // ควบคุมคลาสอื่นๆ
-                innerRow.className = `team-row-inner ${themeClass} ${expansionClass} ${!teamIsAlive ? 'eliminated-team' : ''} ${innerRow.classList.contains('in-bluezone') ? 'in-bluezone' : ''} ${innerRow.classList.contains('flash-active') ? 'flash-active' : ''}`;
+                innerRow.className = `team-row-inner ${themeClass} ${expansionClass} ${!teamIsAlive ? 'eliminated-team' : ''} ${innerRow.classList.contains('in-bluezone') ? 'in-bluezone' : ''}`;
                 
                 const rowWrapper = innerRow.querySelector('.row-grid-wrapper');
                 
@@ -745,4 +749,3 @@
     </script>
 </body>
 </html>
-
