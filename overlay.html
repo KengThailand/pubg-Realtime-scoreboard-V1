@@ -162,36 +162,33 @@
         
         /* 1. ตำแหน่งชื่อทีม (ตัวอักษร) */
         .team-name { 
-            font-size: 18px; 
+            font-size: 20px;
+            font-weight: 100;
             white-space: nowrap; 
             overflow: hidden; 
             text-overflow: ellipsis; 
-            line-height: normal; 
+            line-height: normal;
             text-transform: uppercase; 
-            display: block; /* แก้จาก flex เป็น block เพื่อให้ ellipsis (จุดไข่ปลา) กลับมาทำงาน */
+            display: block; 
             width: 100%;
-            /* 🔴 ปรับตำแหน่งชื่อทีมตรงนี้ (X, Y) */
             transform: translate(0px, 0px); 
         }
 
         /* 2. ตำแหน่งขีด ALIVE */
         .col-alive { 
             justify-content: center; gap: 2px; 
-            /* 🔴 ปรับตำแหน่งแถบ ALIVE ตรงนี้ (X, Y) */
             transform: translate(-4px, 0px); 
         }
 
         /* 3. ตำแหน่งตัวเลขคะแนน PTS */
         .col-pts { 
-            justify-content: center; font-size: 16px; 
-            /* 🔴 ปรับตำแหน่งคะแนน PTS ตรงนี้ (X, Y) */
+            justify-content: center; font-size: 18px; 
             transform: translate(0px, 0px); 
         }
 
         /* 4. ตำแหน่งตัวเลข KILLS */
         .col-kills { 
-            justify-content: center; font-size: 16px; 
-            /* 🔴 ปรับตำแหน่งคะแนน KILLS ตรงนี้ (X, Y) */
+            justify-content: center; font-size: 18px; 
             transform: translate(0px, 0px); 
         }
 
@@ -290,6 +287,7 @@
             will-change: transform;
         }
         
+        /* 🟢 CSS Animation สำหรับ Bluezone (ให้ทำงานพร้อมกันผ่าน JS) */
         .team-row-inner.in-bluezone .bg-layer::after { 
             content: ''; 
             position: absolute; 
@@ -303,10 +301,12 @@
             pointer-events: none; 
         }
 
-        .scoreboard-container.global-bluezone-flash .team-row-inner.in-bluezone .bg-layer::after {
+        /* เมื่อ JS เติม Class นี้ จะทำให้พื้นหลังเป็นสีฟ้า (กระพริบ) */
+        .scoreboard-container.global-flash .team-row-inner.in-bluezone .bg-layer::after {
             background-color: rgba(0, 150, 255, 1);
         }
 
+        /* 🟢 แยกแอนิเมชันสำหรับผู้เล่นที่ล้ม (Knocked) - ปรับให้ช้าลงและสมูทขึ้นเป็นจังหวะหายใจ */
         @keyframes pulse-knocked {
             0%, 100% { opacity: 1; }
             50% { opacity: 0.4; } 
@@ -362,9 +362,14 @@
         let previousAliveCount = 0; 
         
         let teamBluechipCounts = {};
+        // 🟢 เก็บสถานะ ว่ามีคนกำลังรอฟื้นไหม (true/false) 
         let isWaitingForRevive = {}; 
         let matchEndTime = 0;
+        
+        // 🟢 ตัวแปรสำหรับเช็คการสลับกลุ่มทีม
+        let lastKnownTeams = [];
 
+        // โหลด State ของ Top4 จาก localStorage
         try {
             const savedTop4 = JSON.parse(localStorage.getItem(`pubg_finalTop4_${tourneyId || 'default'}`) || "[]");
             const savedOrder = JSON.parse(localStorage.getItem(`pubg_top4Order_${tourneyId || 'default'}`) || "[]");
@@ -375,10 +380,11 @@
             }
         } catch(e) {}
 
+        // 🟢 ระบบควบคุมแอนิเมชันกระพริบ (Global Sync) ใช้ควบคุมทั้ง Bluezone และ Knocked
         setInterval(() => {
             const container = document.getElementById('main-container');
             if(container) {
-                container.classList.toggle('global-bluezone-flash');
+                container.classList.toggle('global-flash');
             }
         }, 750); 
 
@@ -388,13 +394,26 @@
             const now = Date.now();
 
             const aliveTeamsCountCheck = data.data.teams.filter(t => t.elimination === false || (t.players && t.players.some(p => p.isAlive))).length;
+            const currentTeamNamesList = data.data.teams.map(t => t.team_name);
             
+            // 🟢 ตรวจจับการเปลี่ยนกลุ่ม (ถ้าทีมเดิมหายไปเกินครึ่ง แปลว่าเริ่มห้องใหม่กลุ่มใหม่)
+            let isGroupChanged = false;
+            if (!isFirstRender && lastKnownTeams.length > 0) {
+                const matchedCount = currentTeamNamesList.filter(name => lastKnownTeams.includes(name)).length;
+                if (matchedCount < 8) { 
+                    isGroupChanged = true; 
+                }
+            }
+            lastKnownTeams = currentTeamNamesList;
+
+            // ตรวจจับการเริ่มแมตช์ใหม่หรือสลับกลุ่ม
             let isMatchReset = false;
-            if (isFirstRender || (previousAliveCount < 10 && aliveTeamsCountCheck >= 14)) {
+            if (isFirstRender || isGroupChanged || (previousAliveCount < 10 && aliveTeamsCountCheck >= 14)) {
                 isMatchReset = true;
             }
             previousAliveCount = aliveTeamsCountCheck;
 
+            // ล้างประวัติเกมส์เมื่อขึ้นแมตช์ใหม่
             if (isMatchReset) {
                 matchEndTime = 0;
                 top4EntryTime = 0;
@@ -410,9 +429,22 @@
                 isTop4Locked = false;
                 localStorage.removeItem(`pubg_finalTop4_${tourneyId || 'default'}`);
                 localStorage.removeItem(`pubg_top4Order_${tourneyId || 'default'}`);
+
+                // 🟢 ล้างหน้าจอกระดานทิ้งทั้งหมด เพื่อวาดใหม่ไม่ให้ทีมเก่าค้าง
+                const sb = document.getElementById('scoreboard');
+                if (sb) sb.innerHTML = '';
             }
 
             const scoreboard = document.getElementById('scoreboard');
+
+            // 🟢 ดักเก็บตก: เตะกล่องทีมที่ไม่มีในรายชื่อแมตช์รอบนี้ออกจากจอทันที
+            const activeTeamIds = currentTeamNamesList.map(name => `team-${name}`);
+            scoreboard.querySelectorAll('.team-wrapper').forEach(row => {
+                if (!activeTeamIds.includes(row.id)) {
+                    row.remove();
+                }
+            });
+
             const oldPositions = {};
             scoreboard.querySelectorAll('.team-wrapper').forEach(row => { oldPositions[row.id] = row.getBoundingClientRect().top; });
 
@@ -477,6 +509,7 @@
                 let teamIsAlive = false, teamInBlueZone = false, revivedPlayersQueue = [];
                 let dotsHtml = '', playerDetailsHtml = ''; 
 
+                // 🌟 1. ดักการ "กดใช้เครื่อง" 
                 let currentBluechipCount = team.useBluechipCount || team.revive_count || team.bluechip_revive || team.revives || 0;
                 
                 if (teamBluechipCounts[team.team_name] === undefined) {
@@ -515,7 +548,7 @@
                         }
                         playerStates[rawName] = isCurrentlyAlive;
 
-                        const pulseS = (isCurrentlyAlive && p.isGroggy) ? 'knocked-pulse' : '';
+                        const pulseS = (isCurrentlyAlive && p.isGroggy) ? 'is-knocked' : '';
                         const colorS = isCurrentlyAlive ? (p.isGroggy ? 'var(--c-tick-knocked)' : 'var(--c-tick-alive)') : 'transparent';
                         
                         const hpPercent = isCurrentlyAlive ? (p.isGroggy ? 1 : (typeof p.health === 'number' ? p.health / 100 : 1)) : 0;
@@ -527,7 +560,7 @@
                         let rawName = p.name || '';
                         let cleanName = rawName.replace(prefixRegex, '');
 
-                        const pulseL = (isCurrentlyAlive && p.isGroggy) ? 'knocked-pulse' : '';
+                        const pulseL = (isCurrentlyAlive && p.isGroggy) ? 'is-knocked' : '';
                         const colorL = isCurrentlyAlive ? (p.isGroggy ? 'var(--c-hp-knocked)' : 'var(--c-hp-alive)') : 'transparent';
                         
                         const hpPercent = isCurrentlyAlive ? (p.isGroggy ? 1 : (typeof p.health === 'number' ? p.health / 100 : 1)) : 0;
