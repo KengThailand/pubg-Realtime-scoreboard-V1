@@ -20,7 +20,6 @@
         /* 🟢 โหลดฟอนต์ Header */
         @font-face {
             font-family: 'TransducerCondensed';
-            /* 💡 ถ้ามีไฟล์ฟอนต์ตัวบาง ให้เปลี่ยนชื่อไฟล์ตรงนี้ครับ */
             src: url('Transducer-CondensedBold.otf') format('opentype');
             font-weight: normal; font-style: normal;
         }
@@ -28,14 +27,14 @@
         /* 🟢 โหลดฟอนต์หลัก (ทีม, ผู้เล่น, ตัวเลข) */
         @font-face {
             font-family: 'EsamanruMedium';
-            src: url('Transducer-CondensedBold.otf') format('opentype');
-            font-weight: normal; font-style: normal; font-size: 16px; translate: 50px 20px;
+            src: url('esamanru OTF Medium.otf') format('opentype');
+            font-weight: normal; font-style: normal;
         }
 
         /* 🟢 ตั้งค่า Font หลักให้กับทั้งหน้า */
         * {
             font-family: 'EsamanruMedium', sans-serif !important;
-            letter-spacing: 1px;
+            letter-spacing: 0.5px;
             font-weight: normal !important; /* บังคับให้เป็นตัวธรรมดา ไม่หนา */
             -webkit-font-smoothing: antialiased; 
             -moz-osx-font-smoothing: grayscale;
@@ -148,13 +147,23 @@
         }
 
         .col-rank, .col-team, .col-alive, .col-pts, .col-kills { display: flex; align-items: center; height: 100%; line-height: 1; }
-        .col-rank { justify-content: center; font-size: 15px; }
-        .col-team { justify-content: flex-start; padding-left: 4px; }
+        
+        /* 🟢 1. อันดับ (Rank) */
+        /* ปรับตำแหน่ง (แกน X, แกน Y) ได้ที่ transform: translate(X, Y) */
+        .col-rank { justify-content: center; font-size: 15px; transform: translate(0px, 0px); } 
+        
+        /* 🟢 2. กล่องรวมโลโก้และชื่อทีม */
+        .col-team { justify-content: flex-start; padding-left: 4px; transform: translate(0px, 0px); }
         .header-row .col-team { padding-left: 28px; } 
 
         /* 🟢 ขยับคอลัมน์ ALIVE ไปซ้ายอีกนิด เพื่อไม่ให้ชิด PTS */
         .col-alive { justify-content: center; gap: 2px; transform: translateX(-4px); }
-        .col-pts, .col-kills { justify-content: center; font-size: 16px; }
+        
+        /* 🟢 3. ตัวเลขคะแนนรวม (PTS) และคิล (KILLS) */
+        /* ปรับตำแหน่ง (แกน X, แกน Y) ของ PTS */
+        .col-pts { justify-content: center; font-size: 16px; transform: translate(0px, 0px); }
+        /* ปรับตำแหน่ง (แกน X, แกน Y) ของ KILLS */
+        .col-kills { justify-content: center; font-size: 16px; transform: translate(0px, 0px); }
 
         /* 🟢 ขยับหัวข้อ ALIVE ไปทางซ้ายให้ตรงกันด้วย */
         .header-row .col-rank, .header-row .col-team, .header-row .col-alive, .header-row .col-pts, .header-row .col-kills { font-size: 14px; letter-spacing: 0px; }
@@ -163,7 +172,9 @@
 
         .team-logo { width: 28px; height: 28px; margin-right: 8px; object-fit: contain; background-color: transparent; flex-shrink: 0; transform: translateZ(0); }
         
-        /* 🟢 บังคับพิมพ์ใหญ่ให้ชื่อทีม + จัดให้อยู่กึ่งกลางแนวตั้ง */
+        /* 🟢 4. ชื่อทีม (Text ล้วนๆ) */
+        /* ปรับตำแหน่ง (แกน X, แกน Y) ได้ที่ transform: translate(X, Y) */
+        /* ตอนนี้ตั้ง Y เป็น 1px เพื่อให้บาลานซ์กับโลโก้ ถ้าอยากแก้แกน X ด้วยให้เปลี่ยนเป็น translate(Xpx, Ypx) เช่น translate(5px, 1px) */
         .team-name { 
             font-size: 16px; 
             white-space: nowrap; 
@@ -174,7 +185,7 @@
             display: flex;
             align-items: center; /* จัดให้อยู่กลางแนวตั้ง */
             height: 100%;
-            transform: translateY(1px); /* ขยับลงมาให้บาลานซ์กับกล่อง */
+            transform: translate(0px, 1px); 
         }
 
         .alive-bar { position: relative; width: 6px; height: 18px; border-radius: 1px; border: 1px solid #000000; box-sizing: border-box; background-color: #111111; overflow: hidden; transform: translateZ(0); }
@@ -183,15 +194,16 @@
             height: 100%;
             transform-origin: bottom;
             transform: scaleY(1);
-            transition: transform 0.6s cubic-bezier(0.25, 0.8, 0.25, 1), background-color 0.4s, opacity 0.75s ease-in-out;
-            will-change: transform, background-color, opacity;
+            transition: transform 0.6s cubic-bezier(0.25, 0.8, 0.25, 1), background-color 0.4s;
+            will-change: transform, background-color;
         }
 
         .player-list { padding: 2px 8px 6px 34px; display: flex; flex-direction: column; gap: 5px; }
         /* 🟢 ปรับ CSS Grid ให้ส่วนชื่อผู้เล่นสามารถหดตัวโชว์จุดไข่ปลาได้ถูกต้อง */
         .player-item { display: grid; grid-template-columns: minmax(0, 1fr) 110px; align-items: center; gap: 10px; width: 100%; }
         
-        /* 🟢 ปรับขนาดและบังคับให้ทำงานร่วมกับ CSS Grid ได้อย่างสมบูรณ์ */
+        /* 🟢 5. ชื่อผู้เล่นใน TOP 4 */
+        /* ปรับตำแหน่ง (แกน X, แกน Y) ได้ที่ transform: translate(X, Y) */
         .player-name { 
             font-size: 12px; /* 🟢 ปรับขนาดให้เล็กลงอีกนิดเพื่อไม่ให้ล้นบ่อย */
             white-space: nowrap; 
@@ -201,7 +213,7 @@
             text-transform: none; /* คงสภาพตัวเล็ก-ใหญ่ตามเดิม */
             line-height: normal;
             display: block; /* 🟢 เปลี่ยนเป็น block เพื่อให้ ellipsis ทำงาน */
-            transform: translateY(1px); /* ขยับลงมาให้บาลานซ์กับหลอดเลือด */
+            transform: translate(0px, 1px); /* ขยับลงมาให้บาลานซ์กับหลอดเลือด */
         }
         .player-name.dead { color: var(--c-team-text-dead); opacity: 0.7; }
         
@@ -211,8 +223,8 @@
             width: 100%;
             transform-origin: left;
             transform: scaleX(1);
-            transition: transform 0.4s ease-out, background-color 0.4s, opacity 0.75s ease-in-out;
-            will-change: transform, background-color, opacity;
+            transition: transform 0.4s ease-out, background-color 0.4s;
+            will-change: transform, background-color;
         }
 
         .data-layer { position: relative; z-index: 5; width: 100%; }
@@ -262,7 +274,7 @@
             will-change: transform;
         }
         
-        /* 🟢 CSS สำหรับ Bluezone (ทำงานพร้อมกันผ่าน JS) */
+        /* 🟢 CSS Animation สำหรับ Bluezone (ให้ทำงานพร้อมกันผ่าน JS) */
         .team-row-inner.in-bluezone .bg-layer::after { 
             content: ''; 
             position: absolute; 
@@ -277,18 +289,18 @@
         }
 
         /* เมื่อ JS เติม Class นี้ จะทำให้พื้นหลังเป็นสีฟ้า (กระพริบ) */
-        .scoreboard-container.global-flash .team-row-inner.in-bluezone .bg-layer::after {
+        .scoreboard-container.global-bluezone-flash .team-row-inner.in-bluezone .bg-layer::after {
             background-color: rgba(0, 150, 255, 0.4);
         }
 
-        /* 🟢 CSS สำหรับคนล้ม (Knocked) ดึงจังหวะตาม Global Sync */
-        .hp-fill-small.is-knocked, .player-hp-fill.is-knocked {
-            opacity: 1;
+        /* 🟢 แยกแอนิเมชันสำหรับผู้เล่นที่ล้ม (Knocked) - ปรับให้ช้าลงและสมูทขึ้นเป็นจังหวะหายใจ */
+        @keyframes pulse-knocked {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.4; } /* ดรอปแสงแค่ 40% จะได้ไม่ดูกระพริบแรงไป */
         }
-
-        .scoreboard-container.global-flash .hp-fill-small.is-knocked, 
-        .scoreboard-container.global-flash .player-hp-fill.is-knocked {
-            opacity: 0.3; /* หรี่แสงลงพร้อมๆ กับวงฟ้า */
+        .knocked-pulse {
+            animation: pulse-knocked 2.5s infinite ease-in-out; /* เพิ่มเวลาจาก 1.5s เป็น 2.5s */
+            will-change: opacity;
         }
         
         #error-msg { color: #f59600; font-size: 14px; background: #222; padding: 15px; border: 1px solid #f59600; display: none; }
@@ -354,11 +366,11 @@
             }
         } catch(e) {}
 
-        // 🟢 ระบบควบคุมแอนิเมชันกระพริบ (Global Sync) ใช้ควบคุมทั้ง Bluezone และ Knocked
+        // 🟢 ระบบควบคุมแอนิเมชัน Bluezone ให้กระพริบพร้อมกันทั้งจอ (Global Sync)
         setInterval(() => {
             const container = document.getElementById('main-container');
             if(container) {
-                container.classList.toggle('global-flash');
+                container.classList.toggle('global-bluezone-flash');
             }
         }, 750); 
 
@@ -500,8 +512,7 @@
                         }
                         playerStates[rawName] = isCurrentlyAlive;
 
-                        // 🟢 เปลี่ยนมาใช้คลาส is-knocked แทนการเรียก keyframe pulse ตรงๆ
-                        const pulseS = (isCurrentlyAlive && p.isGroggy) ? 'is-knocked' : '';
+                        const pulseS = (isCurrentlyAlive && p.isGroggy) ? 'knocked-pulse' : '';
                         const colorS = isCurrentlyAlive ? (p.isGroggy ? 'var(--c-tick-knocked)' : 'var(--c-tick-alive)') : 'transparent';
                         
                         const hpPercent = isCurrentlyAlive ? (p.isGroggy ? 1 : (typeof p.health === 'number' ? p.health / 100 : 1)) : 0;
@@ -513,8 +524,7 @@
                         let rawName = p.name || '';
                         let cleanName = rawName.replace(prefixRegex, '');
 
-                        // 🟢 เปลี่ยนมาใช้คลาส is-knocked แทนการเรียก keyframe pulse ตรงๆ
-                        const pulseL = (isCurrentlyAlive && p.isGroggy) ? 'is-knocked' : '';
+                        const pulseL = (isCurrentlyAlive && p.isGroggy) ? 'knocked-pulse' : '';
                         const colorL = isCurrentlyAlive ? (p.isGroggy ? 'var(--c-hp-knocked)' : 'var(--c-hp-alive)') : 'transparent';
                         
                         const hpPercent = isCurrentlyAlive ? (p.isGroggy ? 1 : (typeof p.health === 'number' ? p.health / 100 : 1)) : 0;
@@ -619,13 +629,14 @@
 
                 const themeClass = index === 0 ? 'first-place' : 'normal-place';
                 
-                // กำหนด Class Bluezone
+                // กำหนด Class Bluezone ให้ทำงานร่วมกับ Global Sync
                 if (teamInBlueZone && teamIsAlive) {
                     if (!innerRow.classList.contains('in-bluezone')) {
                         innerRow.classList.add('in-bluezone');
                     }
                 } else {
                     innerRow.classList.remove('in-bluezone');
+                    innerRow.classList.remove('flash-active');
                 }
                 
                 if(visibilityClass === 'hidden-top4') {
@@ -635,7 +646,7 @@
                 }
 
                 // ควบคุมคลาสอื่นๆ
-                innerRow.className = `team-row-inner ${themeClass} ${expansionClass} ${!teamIsAlive ? 'eliminated-team' : ''} ${innerRow.classList.contains('in-bluezone') ? 'in-bluezone' : ''}`;
+                innerRow.className = `team-row-inner ${themeClass} ${expansionClass} ${!teamIsAlive ? 'eliminated-team' : ''} ${innerRow.classList.contains('in-bluezone') ? 'in-bluezone' : ''} ${innerRow.classList.contains('flash-active') ? 'flash-active' : ''}`;
                 
                 const rowWrapper = innerRow.querySelector('.row-grid-wrapper');
                 
