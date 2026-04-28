@@ -287,23 +287,25 @@
             will-change: transform;
         }
         
-        /* 🟢 CSS Animation สำหรับ Bluezone (ให้ทำงานพร้อมกันผ่าน JS) */
-        .team-row-inner.in-bluezone .bg-layer::after { 
+        /* 🟢 CSS Animation สำหรับ Bluezone (ใช้สีล้วน แยก Layer ไม่โปร่งใสตาม BG) */
+        .team-row-inner::before { 
             content: ''; 
             position: absolute; 
             top: 0; 
             left: 0; 
             right: 0; 
             height: 32px; 
-            background-color: rgba(0, 150, 255, 0);
-            transition: background-color 0.75s ease-in-out;
+            background-color: rgba(0, 149, 255, 0.6); /* สีฟ้าเข้มทึบ 100% */
+            opacity: 0;
+            transition: opacity 0.75s ease-in-out;
             z-index: 1; 
             pointer-events: none; 
+            will-change: opacity;
         }
 
-        /* เมื่อ JS เติม Class นี้ จะทำให้พื้นหลังเป็นสีฟ้า (กระพริบ) */
-        .scoreboard-container.global-flash .team-row-inner.in-bluezone .bg-layer::after {
-            background-color: rgba(0, 150, 255, 5);
+        /* เมื่อ JS เติม Class นี้ จะทำให้พื้นหลังกระพริบตามจังหวะ Global */
+        .scoreboard-container.global-flash .team-row-inner.in-bluezone::before {
+            opacity: 1;
         }
 
         /* 🟢 แยกแอนิเมชันสำหรับผู้เล่นที่ล้ม (Knocked) - ปรับให้ช้าลงและสมูทขึ้นเป็นจังหวะหายใจ */
