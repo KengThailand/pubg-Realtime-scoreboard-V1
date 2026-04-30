@@ -1,5 +1,5 @@
 # LINK
-[# 🎮 PUBG Live Scoreboard Overlay](https://kengthailand.github.io/pubg-Realtime-scoreboard/)
+[# 🎮 PUBG Live Scoreboard Overlay](https://kengthailand.github.io/pubg-Realtime-scoreboard-V1/)
 <img width="587" height="986" alt="image" src="https://github.com/user-attachments/assets/0094f83a-cac1-42ef-a24d-77a87b8ba7e4" />
 
 # 🎮 PUBG Live Scoreboard Overlay
