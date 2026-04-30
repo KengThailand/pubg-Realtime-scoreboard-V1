@@ -310,12 +310,12 @@
 
         /* 🟢 แยกแอนิเมชันสำหรับผู้เล่นที่ล้ม (Knocked) - ปรับให้ช้าลงและสมูทขึ้นเป็นจังหวะหายใจ */
         @keyframes pulse-knocked {
-            0%, 50% { opacity: 0.5; }
+            0%, 100% { opacity: 1; }
             50% { opacity: 0.4; } 
         }
         .knocked-pulse {
-            animation: pulse-knocked 1s infinite ease-in-out; 
-            will-change: opacity;
+            animation: pulse-knocked 2.5s infinite ease-in-out; 
+            will-change: opacity: 0.5;
         }
         
         #error-msg { color: #f59600; font-size: 14px; background: #222; padding: 15px; border: 1px solid #f59600; display: none; }
