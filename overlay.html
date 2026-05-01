@@ -52,7 +52,7 @@
         .scoreboard-container { display: flex; flex-direction: column; width: 260px; position: relative; border-radius: 0px !important; overflow: visible !important; }
         #scoreboard { display: flex; flex-direction: column; width: 100%; position: relative; overflow: visible !important; }
         
-        .header-row { height: 28px; position: relative; z-index: 20; background-color: var(--c-header-bg); color: var(--c-header-text); border-radius: 0px !important; }
+        .header-row { height: 23px; position: relative; z-index: 20; background-color: var(--c-header-bg); color: var(--c-header-text); border-radius: 0px !important; }
         .row-grid { display: grid; grid-template-columns: 24px minmax(0, 1fr) 42px 30px 38px; align-items: center; box-sizing: border-box; padding: 0 4px; position: relative; z-index: 5; }
         
         /* 60fps Optimization + Broadcast Easing */
@@ -105,8 +105,22 @@
         .team-row-inner.first-place { border-bottom: 1px solid rgba(191,191,191,0.35); }
         .team-row-inner.normal-place { border-bottom: 1px solid rgba(191,191,191,0.35); }
         
-        .team-row-inner.eliminated-team .bg-layer { background-color: var(--c-team-bg-dead) !important; }
-        .team-row-inner.eliminated-team { color: var(--c-team-text-dead) !important; }
+        /* 🟢 เซ็ตพื้นหลังให้ดำโปร่งแสง ทะลุเห็นภาพในเกม */
+        .team-row-inner.eliminated-team .bg-layer { 
+            background-color: #000000 !important; 
+            opacity: 0.9 !important; /* 🟢 ปรับเป็น 0.8 ตามที่รีเควสครับ */
+        }
+
+        /* 🟢 เซ็ตสีตัวหนังสือและตัวเลขของทีมที่ตายให้เป็นสีเทา */
+        .team-row-inner.eliminated-team { 
+            color: #7a7a7a !important; 
+        }
+
+        /* 🟢 ปรับโลโก้ให้ดูดสีออกเป็นขาวเทา และโปร่งแสง (ไม่ดำปื้น) */
+        .team-row-inner.eliminated-team .team-logo {
+            filter: grayscale(100%) brightness(0.9); 
+            opacity: 1; 
+        }
 
         @keyframes bluechip-glow { 
             0% { filter: brightness(1); } 
@@ -120,7 +134,7 @@
             top: 0;
             width: 38px; 
             height: 32px; 
-            background-color: rgba(0,0,0, 0.5); 
+            background-color: rgba(20,20,20, 0.9); 
             display: flex;
             align-items: center;
             justify-content: center;
@@ -145,7 +159,31 @@
             padding: 3px;
             box-sizing: border-box;
         }
-
+        /* 🟢 เอฟเฟกต์เลื่อนตัวเลขคะแนนขึ้นเวลาอัปเดต (Slot Machine Effect) */
+        .score-anim-container {
+            position: relative;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 100%;
+            height: 100%;
+        }
+        .score-old-slide {
+            position: absolute;
+            animation: slideOutUp 0.5s cubic-bezier(0.25, 0.8, 0.25, 1) forwards;
+        }
+        .score-new-slide {
+            position: absolute;
+            animation: slideInUp 0.5s cubic-bezier(0.25, 0.8, 0.25, 1) forwards;
+        }
+        @keyframes slideOutUp {
+            0% { transform: translateY(0); opacity: 1; }
+            100% { transform: translateY(-120%); opacity: 0; }
+        }
+        @keyframes slideInUp {
+            0% { transform: translateY(120%); opacity: 0; }
+            100% { transform: translateY(0); opacity: 1; }
+        }
         /* -------------------------------------------------------------------------
            🎯 โซนปรับแต่งตำแหน่ง (X, Y) แยกอิสระสำหรับกระดานหลัก 
            วิธีใช้: แก้ตัวเลขใน translate(แกน X, แกน Y) 
@@ -155,10 +193,10 @@
 
         .col-rank, .col-team, .col-alive, .col-pts, .col-kills { display: flex; align-items: center; height: 100%; line-height: 1; }
         
-        .col-rank { justify-content: center; font-size: 15px; }
+        .col-rank { justify-content: center; font-size: 18px; }
         
         .col-team { justify-content: flex-start; padding-left: 4px; }
-        .team-logo { width: 28px; height: 28px; margin-right: 8px; object-fit: contain; background-color: transparent; flex-shrink: 0; transform: translateZ(0); }
+        .team-logo { width: 28px; height: 28px; margin-right: 8px; object-fit: contain; background-color: transparent; flex-shrink: 0; transform: translateZ(0); transition: filter 0.3s, opacity 0.3s; }
         
         /* 1. ตำแหน่งชื่อทีม (ตัวอักษร) */
         .team-name { 
@@ -195,8 +233,8 @@
         /* -------------------------------------------------------------------------
            🎯 โซนปรับแต่งตำแหน่ง (X, Y) สำหรับแถบ Header ด้านบนสุด
         -------------------------------------------------------------------------- */
-        .header-row .col-rank, .header-row .col-team, .header-row .col-alive, .header-row .col-pts, .header-row .col-kills { font-size: 14px; letter-spacing: 0px; }
-        .header-row .col-team { padding-left: 28px; } 
+        .header-row .col-rank, .header-row .col-team, .header-row .col-alive, .header-row .col-pts, .header-row .col-kills { font-size: 15px; letter-spacing: 0px; font-weight: 100 }
+        .header-row .col-team { padding-left: 30px; } 
 
         .header-row .col-alive { transform: translate(-4px, 0px); }
         .header-row .col-pts { transform: translate(0px, 0px); }
@@ -206,20 +244,22 @@
 
         .alive-bar { position: relative; width: 6px; height: 18px; border-radius: 1px; border: 1px solid #000000; box-sizing: border-box; background-color: #111111; overflow: hidden; transform: translateZ(0); }
         .hp-fill-small { 
-            position: absolute; bottom: 0; left: 0; width: 100%; 
-            height: 100%;
-            transform-origin: bottom;
-            transform: scaleY(1);
-            transition: transform 0.6s cubic-bezier(0.25, 0.8, 0.25, 1), background-color 0.4s;
-            will-change: transform, background-color;
-        }
+        position: absolute; bottom: 0; left: 0; width: 100%; 
+        height: 100%;
+        transform-origin: bottom;
+        transform: scaleY(1);
+        /* 🟢 เอา transition ของการกระพริบมารวมไว้ตรงนี้ */
+        transition: transform 0.6s cubic-bezier(0.25, 0.8, 0.25, 1), background-color 0.4s, opacity 0.7s ease-in-out, filter 0.5s ease-in-out;
+        will-change: transform, background-color, opacity, filter;
+}
 
         .player-list { padding: 2px 8px 6px 34px; display: flex; flex-direction: column; gap: 5px; }
         .player-item { display: grid; grid-template-columns: minmax(0, 1fr) 110px; align-items: center; gap: 10px; width: 100%; }
         
         .player-name { 
-            font-size: 15px; 
-            white-space: nowrap; 
+            font-size: 16px; 
+            white-space: nowrap;
+            font-weight: 100;
             overflow: hidden; 
             text-overflow: ellipsis; 
             color: var(--c-team-text-alive); 
@@ -228,16 +268,17 @@
             display: block; 
             transform: translateY(1px); 
         }
-        .player-name.dead { color: var(--c-team-text-dead); opacity: 0.7; }
+        .player-name.dead { color: var(--c-team-text-dead); color: #6b6b6b; opacity: 1; }
         
-        .player-hp-bar { height: 10px; background-color: #444; border: 1px solid #000; position: relative; overflow: hidden; transform: translateZ(0); }
+        .player-hp-bar { height: 10px; background-color: #444; border: 1px solid #000; position: relative; overflow: hidden; transform: translateZ(0);transform: translateY(1px); }
         .player-hp-fill { 
             height: 100%; 
             width: 100%;
             transform-origin: left;
             transform: scaleX(1);
-            transition: transform 0.4s ease-out, background-color 0.4s;
-            will-change: transform, background-color;
+            /* 🟢 เอา transition ของการกระพริบมารวมไว้ตรงนี้ */
+            transition: transform 0.4s ease-out, background-color 0.4s, opacity 0.7s ease-in-out, filter 0.5s ease-in-out;
+            will-change: transform, background-color, opacity, filter;
         }
 
         .data-layer { position: relative; z-index: 5; width: 100%; }
@@ -295,9 +336,9 @@
             left: 0; 
             right: 0; 
             height: 32px; 
-            background-color: rgba(4, 103, 173 , 0.5); /* สีฟ้าเข้มทึบ 100% */
+            background-color: rgba(45, 75, 140, 0.8); /* สีฟ้าเข้มทึบ 100% */
             opacity: 0;
-            transition: opacity 0.75s ease-in-out;
+            transition: opacity 1s ease-in-out;
             z-index: 1; 
             pointer-events: none; 
             will-change: opacity;
@@ -308,14 +349,15 @@
             opacity: 1;
         }
 
-        /* 🟢 แยกแอนิเมชันสำหรับผู้เล่นที่ล้ม (Knocked) - ปรับให้ช้าลงและสมูทขึ้นเป็นจังหวะหายใจ */
-        @keyframes pulse-knocked {
-            0%, 100% { opacity: 1; }
-            50% { opacity: 0.4; } 
+    /* 🟢 แอนิเมชันสำหรับหลอดเลือดคนล้ม (แยกมารับคำสั่งจาก knocked-flash) */
+        .is-knocked {
+            transition: opacity 0.9s ease-in-out, filter 0.9s ease-in-out;
+            opacity: 1;
         }
-        .knocked-pulse {
-            animation: pulse-knocked 2.5s infinite ease-in-out; 
-            will-change: opacity: 0.5;
+
+        .scoreboard-container.knocked-flash .is-knocked {
+            opacity: 0.2 !important; 
+            filter: brightness(1.5);
         }
         
         #error-msg { color: #f59600; font-size: 14px; background: #222; padding: 15px; border: 1px solid #f59600; display: none; }
@@ -368,6 +410,25 @@
         let isWaitingForRevive = {}; 
         let matchEndTime = 0;
         
+        // 🟢 ฟังก์ชันสำหรับแอนิเมชันตัวเลขเลื่อนขึ้น (ทำเป็น Slot Machine)
+        function animateValueChange(element, newValue) {
+            let currentVal = element.getAttribute('data-val');
+            // ถ้าค่าเปลี่ยน ให้รันแอนิเมชันเลื่อน
+            if (currentVal !== null && currentVal != newValue) {
+                element.innerHTML = `<div class="score-anim-container"><div class="score-old-slide">${currentVal}</div><div class="score-new-slide">${newValue}</div></div>`;
+                element.setAttribute('data-val', newValue);
+                
+                // คืนค่าเป็นข้อความปกติเมื่อแอนิเมชันจบ
+                setTimeout(() => {
+                    if (element.getAttribute('data-val') == newValue) {
+                        element.innerHTML = newValue;
+                    }
+                }, 500);
+            } else {
+                element.innerHTML = newValue;
+                element.setAttribute('data-val', newValue);
+            }
+        }
         // 🟢 ตัวแปรสำหรับเช็คการสลับกลุ่มทีม
         let lastKnownTeams = [];
 
@@ -382,13 +443,21 @@
             }
         } catch(e) {}
 
-        // 🟢 ระบบควบคุมแอนิเมชันกระพริบ (Global Sync) ใช้ควบคุมทั้ง Bluezone และ Knocked
+   // 🟢 ระบบกระพริบแยกสำหรับคนล้ม Bluezone (กระพริบไวๆ เป็นไฟฉุกเฉิน)
         setInterval(() => {
             const container = document.getElementById('main-container');
             if(container) {
                 container.classList.toggle('global-flash');
             }
-        }, 750); 
+        }, 1000); /* ปรับความเร็ว Bluezone ตรงนี้ (1000 = 1 วินาที) */
+
+        // 🟢 ระบบกระพริบแยกสำหรับคนล้ม Knocked (กระพริบไวๆ เป็นไฟฉุกเฉิน)
+        setInterval(() => {
+            const container = document.getElementById('main-container');
+            if(container) {
+                container.classList.toggle('knocked-flash');
+            }
+        }, 1000); /* ปรับความเร็วหลอดเลือดแดงล้มตรงนี้ (400 = 0.4 วินาที) */
 
         function renderScoreboard(data) {
             if (!data || !data.data || !data.data.teams) return;
@@ -583,7 +652,7 @@
                             const bannerHtml = document.createElement('div');
                             bannerHtml.className = 'revived-banner animate';
                             bannerHtml.style.backgroundImage = `url('REVIVED.png')`;
-                            bannerHtml.innerHTML = `<span style="font-size:15px; color:#ffffff; text-transform: none;">REVIVED: ${playerName}</span>`;
+                            bannerHtml.innerHTML = `<span style="font-size:15px; font-weight: 100; color:#ffffff; text-transform: none;">REVIVED: ${playerName}</span>`;
                             
                             innerRow.querySelector('.banner-layer').appendChild(bannerHtml);
                             setTimeout(() => { bannerHtml.remove(); }, 4050);
@@ -684,16 +753,19 @@
                             <div class="col-rank">${team.total_pts_rank}</div>
                             <div class="col-team"><img class="team-logo" src="${logoSrc}" onerror="this.style.visibility='hidden'"><div class="team-name">${team.team_tag}</div></div>
                             <div class="col-alive">${dotsHtml}</div>
-                            <div class="col-pts">${team.total_pts_with_penalty}</div>
-                            <div class="col-kills">${team.match_kills}</div>
+                            <div class="col-pts" data-val="${team.total_pts_with_penalty}">${team.total_pts_with_penalty}</div>
+                            <div class="col-kills" data-val="${team.match_kills}">${team.match_kills}</div>
                         </div>
                         <div class="player-list">${playerDetailsHtml}</div>
                     `;
                 } else {
                     rowWrapper.querySelector('.col-rank').innerText = team.total_pts_rank;
                     rowWrapper.querySelector('.col-alive').innerHTML = dotsHtml;
-                    rowWrapper.querySelector('.col-pts').innerText = team.total_pts_with_penalty;
-                    rowWrapper.querySelector('.col-kills').innerText = team.match_kills;
+                    
+                    // 🟢 เรียกใช้แอนิเมชันตัวเลขเลื่อนขึ้นแทนการสลับค่าเฉยๆ
+                    animateValueChange(rowWrapper.querySelector('.col-pts'), team.total_pts_with_penalty);
+                    animateValueChange(rowWrapper.querySelector('.col-kills'), team.match_kills);
+                    
                     rowWrapper.querySelector('.player-list').innerHTML = playerDetailsHtml;
                 }
                 
